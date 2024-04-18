@@ -21,6 +21,7 @@ class Board {
   vector<pair<Vector2, Vector2>> moves;
   int moveCount = 0;
   Vector2 prevMousePos;
+  int saveMove = 0;
 
 public:
   Board() {
@@ -107,13 +108,15 @@ public:
       colorBoard[(int)pos.y][(int)pos.x] = BLUE;
       if (++ch > 1) {
         end = pos;
-        // VerifyMove();
+        VerifyMove();
         ResetBoardColor();
         ch = 0;
       }
       if (ch == 1)
         start = pos;
 
+      cout << start.y << " " << start.x << " " << end.y << " " << end.x << endl;
+      cout << moveCount << endl;
     }
     if (ch == 1) {
       // Make a hover effect
@@ -138,6 +141,14 @@ public:
            << (int)move.second.y << ", " << (int)move.second.x << ")" << endl;
     }
   }
+  void EnemyMove() {
+    Vector2 enemyStart = moves[moveCount].first;
+    Vector2 enemyEnd = moves[moveCount].second;
+    board[(int)enemyEnd.y][(int)enemyEnd.x] =
+        board[(int)enemyStart.y][(int)enemyStart.x];
+    board[(int)enemyStart.y][(int)enemyStart.x] = "";
+    moveCount++;
+  }
 
 private:
   void ResetBoardColor() {
@@ -147,6 +158,8 @@ private:
         colorBoard[i][j] = squareColor;
       }
     prevMousePos = {-1, -1};
+    start = {-1, -1};
+    end = {-1, -1};
   }
   Vector2 MousePos() {
     Vector2 mouse = GetMousePosition();
@@ -154,20 +167,29 @@ private:
     return pos;
   }
   bool VerifyMove() {
+    bool v = false;
     if (moveCount < moves.size() && start.x == moves[moveCount].first.x &&
         start.y == moves[moveCount].first.y &&
         end.x == moves[moveCount].second.x &&
         end.y == moves[moveCount].second.y) {
+      board[(int)end.y][(int)end.x] = board[(int)start.y][(int)start.x];
+      board[(int)start.y][(int)start.x] = "";
       moveCount++;
+      // Opponent makes the next move and updates
       if (moveCount == moves.size())
         cout << "WON" << endl;
-      return true;
+      else {
+        // enemy makes the
+        EnemyMove();
+      }
+      v = true;
+      saveMove = moveCount;
     } else {
-      moveCount = 0;
-      start = {-1, -1};
-      end = {-1, -1};
-      return false;
+      moveCount = saveMove;
     }
+    start = {-1, -1};
+    end = {-1, -1};
+    return v;
   }
 };
 
@@ -179,6 +201,7 @@ int main() {
   board.setBoard("q3k1nr/1pp1nQpp/3p4/1P2p3/4P3/B1PP1b2/B5PP/5K2");
   board.ParseMoves("e8d7 a2e6 d7d8 f7f8");
   board.PrintMoves();
+  board.EnemyMove();
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
     BeginDrawing();
