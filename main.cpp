@@ -12,16 +12,137 @@ using namespace std;
 
 #define SQUARE_SIZE 100
 
+class Piece {
+  string name;
+
+public:
+  Piece(string name) { this->name = name; }
+  void virtual ViewMoves() = 0;
+};
+
+class HandlePiece {
+public:
+  static void Pawn(string name, Vector2 pos, Color selectedBoard[8][8]) {
+    char enemy = name[0] == 'w' ? 'b' : 'w';
+    bool homeRow = ((name[0] == 'w') ? 7 - pos.y : pos.y) == 1;
+    int mag = homeRow ? 2 : 1;
+    // Direction
+    int dir = name[0] == 'w' ? 1 : -1;
+    // If dir + color the board from pos.y += dir for mag
+    for (int i = 1; i <= mag; i++)
+      selectedBoard[(int)pos.y - i * dir][(int)pos.x] = BLUE;
+  }
+
+  static void Bishop(string name, Vector2 pos, Color selectedBoard[8][8]) {
+    // Highlight all the diagonals if in bounds
+    // Top Right
+    for (int i = 1; i < 8; i++) {
+      if (pos.x + i < 8 && pos.y - i > -1) {
+        selectedBoard[(int)pos.y - i][(int)pos.x + i] = BLUE;
+      }
+    }
+    // Top Left
+    for (int i = 1; i < 8; i++) {
+      if (pos.x - i > -1 && pos.y - i > -1) {
+        selectedBoard[(int)pos.y - i][(int)pos.x - i] = BLUE;
+      }
+    }
+    // Bottom Right
+    for (int i = 1; i < 8; i++) {
+      if (pos.x + i < 8 && pos.y + i < 8) {
+        selectedBoard[(int)pos.y + i][(int)pos.x + i] = BLUE;
+      }
+    }
+    // Bottom Left
+    for (int i = 1; i < 8; i++) {
+      if (pos.x - i > -1 && pos.y + i < 8) {
+        selectedBoard[(int)pos.y + i][(int)pos.x - i] = BLUE;
+      }
+    }
+  }
+
+  static void Rook(string name, Vector2 pos, Color selectedBoard[8][8]) {
+    // Highlight all the rows if in bounds
+    for (int i = 1; i < 8; i++) {
+      selectedBoard[i][(int)pos.x] = BLUE;
+    }
+    // Highlight all the columns if in bounds
+    for (int i = 1; i < 8; i++) {
+      selectedBoard[(int)pos.y][i] = BLUE;
+    }
+  }
+
+  void static Knight(string name, Vector2 pos, Color selectedBoard[8][8]) {
+    // Highlight all the rows if in bounds
+
+    int delrow[8] = {+2, -1, +1, -2, +2, +1, -1, -2};
+    int delcol[8] = {+1, +2, +2, +1, -1, -2, -2, -1};
+    for (int i = 0; i < 8; i++) {
+      Vector2 newP = {pos.x + delrow[i], pos.y + delcol[i]};
+      if (newP.x < 8 && newP.y < 8 && newP.x > -1 && newP.y > -1)
+        selectedBoard[(int)newP.y][(int)newP.x] = BLUE;
+    }
+  }
+
+  static void King(string name, Vector2 pos, Color selectedBoard[8][8]) {
+    int dx[] = {0, 1, -1};
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        int x = pos.x + dx[i];
+        int y = pos.y + dx[j];
+        if (x < 8 && y < 8 && x > -1 && y > -1)
+          selectedBoard[y][x] = BLUE;
+      }
+    }
+  }
+
+  static void Queen(string name, Vector2 pos, Color selectedBoard[8][8]) {
+    Bishop(name, pos, selectedBoard);
+    Rook(name, pos, selectedBoard);
+  }
+
+  static void PieceEval(string name, Vector2 pos, Color selectedBoard[8][8]) {
+    if (name.length() < 2)
+      return;
+    char piece = name[1];
+    switch (piece) {
+    case 'P':
+      Pawn(name, pos, selectedBoard);
+      break;
+    case 'N':
+      Knight(name, pos, selectedBoard);
+      break;
+    case 'B':
+      Bishop(name, pos, selectedBoard);
+      break;
+    case 'R':
+      Rook(name, pos, selectedBoard);
+      break;
+    case 'Q':
+      Queen(name, pos, selectedBoard);
+      break;
+    case 'K':
+      King(name, pos, selectedBoard);
+      break;
+    default:
+      cout << "Piece not found";
+      break;
+    }
+  }
+};
+
 class Board {
   string board[8][8];
   Color colorBoard[8][8];
+  Color selectedBoard[8][8];
   map<string, Texture2D> texs;
-  int ch = 0;
+  bool toggleSelect = 0;
   Vector2 start = {-1, -1}, end = {-1, -1};
   vector<pair<Vector2, Vector2>> moves;
   int moveCount = 0;
   Vector2 prevMousePos;
   int saveMove = 0;
+  int gap = 5;
 
 public:
   Board() {
@@ -30,6 +151,7 @@ public:
         Color squareColor = ((i + j) % 2 == 0) ? GRAY : WHITE;
         colorBoard[i][j] = squareColor;
         board[i][j] = "";
+        selectedBoard[i][j] = WHITE;
       }
     // Load textures for each pieces
     string pieces[] = {"wP", "wN", "wB", "wR", "wQ", "wK",
@@ -87,6 +209,10 @@ public:
         // Draw the square
         DrawRectangle(x * SQUARE_SIZE, y * SQUARE_SIZE, SQUARE_SIZE,
                       SQUARE_SIZE, colorBoard[y][x]);
+        if (!CompareColor(selectedBoard[y][x], WHITE))
+          DrawRectangle(x * SQUARE_SIZE + gap, y * SQUARE_SIZE + gap,
+                        SQUARE_SIZE - gap * 2, SQUARE_SIZE - gap * 2,
+                        selectedBoard[y][x]);
         // Draw the piece
         if (board[y][x] == "")
           continue;
@@ -97,38 +223,11 @@ public:
     }
   }
   void HandleClick() {
-
-    Vector2 pos = MousePos();
-    if (pos.x < 0 || pos.x > 7 || pos.y < 0 || pos.y > 7)
-      return;
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-      // Get the mouse position
-      // Draw the hover effect
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+      Vector2 pos = MousePos();
       cout << pos.y << " " << pos.x << endl;
-      colorBoard[(int)pos.y][(int)pos.x] = BLUE;
-      if (++ch > 1) {
-        end = pos;
-        VerifyMove();
-        ResetBoardColor();
-        ch = 0;
-      }
-      if (ch == 1)
-        start = pos;
-
-      cout << start.y << " " << start.x << " " << end.y << " " << end.x << endl;
-      cout << moveCount << endl;
-    }
-    if (ch == 1) {
-      // Make a hover effect
-      if (prevMousePos.x >= 0 && prevMousePos.y >= 0 &&
-          (prevMousePos.x != start.x || prevMousePos.y != start.y)) {
-        // Set it default color
-
-        colorBoard[(int)prevMousePos.y][(int)prevMousePos.x] =
-            ((int)(prevMousePos.x + prevMousePos.y) % 2 == 0) ? GRAY : WHITE;
-      }
-      prevMousePos = pos;
-      colorBoard[(int)pos.y][(int)pos.x] = ORANGE;
+      ResetBoardColor();
+      HandlePiece::PieceEval(board[(int)pos.y][(int)pos.x], pos, selectedBoard);
     }
   }
 
@@ -156,6 +255,7 @@ private:
       for (int j = 0; j < 8; j++) {
         Color squareColor = ((i + j) % 2 == 0) ? GRAY : WHITE;
         colorBoard[i][j] = squareColor;
+        selectedBoard[i][j] = WHITE;
       }
     prevMousePos = {-1, -1};
     start = {-1, -1};
@@ -166,30 +266,11 @@ private:
     Vector2 pos = {floor(mouse.x / SQUARE_SIZE), floor(mouse.y / SQUARE_SIZE)};
     return pos;
   }
-  bool VerifyMove() {
-    bool v = false;
-    if (moveCount < moves.size() && start.x == moves[moveCount].first.x &&
-        start.y == moves[moveCount].first.y &&
-        end.x == moves[moveCount].second.x &&
-        end.y == moves[moveCount].second.y) {
-      board[(int)end.y][(int)end.x] = board[(int)start.y][(int)start.x];
-      board[(int)start.y][(int)start.x] = "";
-      moveCount++;
-      // Opponent makes the next move and updates
-      if (moveCount == moves.size())
-        cout << "WON" << endl;
-      else {
-        // enemy makes the
-        EnemyMove();
-      }
-      v = true;
-      saveMove = moveCount;
-    } else {
-      moveCount = saveMove;
-    }
-    start = {-1, -1};
-    end = {-1, -1};
-    return v;
+  bool VerifyMove() {}
+  bool CompareColor(Color a, Color b) {
+    Vector3 a_V = ColorToHSV(a);
+    Vector3 b_V = ColorToHSV(b);
+    return a_V.x == b_V.x && a_V.y == b_V.y && a_V.z == b_V.z;
   }
 };
 
