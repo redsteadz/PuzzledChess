@@ -1,16 +1,21 @@
 #include "cmath"
 #include "map"
 #include "raylib.h"
+#include "headers/animate.h"
+#include "headers/database.h"
 #include <bits/stdc++.h>
 #include <ios>
 #include <iostream>
 #include <string>
+#include <utility>
 using namespace std;
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 800
 
 #define SQUARE_SIZE 100
+
+string board[8][8];
 
 class Piece {
   string name;
@@ -44,7 +49,7 @@ public:
     for (int y : dy) {
       for (int x : dx) {
         int valx = pos.x + x;
-        int valy = pos.y + y;
+        int valy = pos.y + dir*y;
         if (valx > -1 && valx < 8 && valy > -1 && valy < 8)
           if (board[valy][valx][0] == enemy)
             selectedBoard[valy][valx] = RED;
@@ -234,7 +239,6 @@ private:
 };
 
 class Board {
-  string board[8][8];
   Color colorBoard[8][8];
   Color selectedBoard[8][8];
   map<string, Texture2D> texs;
@@ -244,7 +248,6 @@ class Board {
   int moveCount = 0;
   int gap = 5;
   // 0 is NPC 1 is player
-  int player = 0;
   char playerColor = 'w';
   // bool enPassant[2];
   // bool whiteKing[2];
@@ -253,7 +256,7 @@ class Board {
   bool castleW[2];
 
 public:
-  Board() {
+  void Reset() {
     for (int i = 0; i < 8; i++)
       for (int j = 0; j < 8; j++) {
         Color squareColor = ((i + j) % 2 == 0) ? GRAY : WHITE;
@@ -261,6 +264,11 @@ public:
         board[i][j] = "";
         selectedBoard[i][j] = WHITE;
       }
+    moves.erase(moves.begin(), moves.end());
+    moveCount = 0;
+  }
+  Board() {
+    Reset();
     // Load textures for each pieces
     string pieces[] = {"wP", "wN", "wB", "wR", "wQ", "wK",
                        "bP", "bN", "bB", "bR", "bQ", "bK"};
@@ -284,6 +292,7 @@ public:
     }
   }
   void setBoard(string FEN) {
+    Reset();
     int i = 0, j = 0;
     for (char c : FEN) {
       if (c == ' ') {
@@ -358,16 +367,20 @@ public:
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       Vector2 pos = MousePos();
       cout << pos.y << " " << pos.x << endl;
+      // Find the start position
+      // cout << pos.y << " " << pos.x << endl;
       if (set) {
         // Means that it has selected a piece, now verify this position to be
         // 1. Blue
         // 2. That of an enemy piece / empty
-        cout << "START: " << start.y << " " << start.x << endl;
+        // cout << "START: " << start.y << " " << start.x << endl;
         if (ValidMove(pos) && VerifyMove(pos)) {
           // Make this move
           // Increase the move count
           // Make the enemy Move
           board[(int)pos.y][(int)pos.x] = board[(int)start.y][(int)start.x];
+          Animation move(&texs[board[(int)pos.y][(int)pos.x]], start, pos);
+          AnimationManager::addAnimation(move);
           board[(int)start.y][(int)start.x] = "";
           moveCount++;
           if (moveCount < moves.size())
@@ -375,7 +388,7 @@ public:
           else
             cout << "WINNER" << endl;
         }
-        cout << ValidMove(pos) << " " << VerifyMove(pos) << endl;
+        // cout << ValidMove(pos) << " " << VerifyMove(pos) << endl;
         set = false;
         start = {-1, -1};
         // Verify that the next move was in the moveset
@@ -409,6 +422,9 @@ public:
     board[(int)enemyEnd.y][(int)enemyEnd.x] =
         board[(int)enemyStart.y][(int)enemyStart.x];
     board[(int)enemyStart.y][(int)enemyStart.x] = "";
+    Animation move(&texs[board[(int)enemyEnd.y][(int)enemyEnd.x]], enemyStart,
+                  enemyEnd);
+    AnimationManager::addAnimation(move);
     moveCount++;
   }
 
@@ -444,7 +460,7 @@ private:
     return pos;
   }
   bool ValidMove(Vector2 pos) {
-    cout << "pos: " << pos.y << " " << pos.x << endl;
+    // cout << "pos: " << pos.y << " " << pos.x << endl;
     if (!CompareColor(selectedBoard[(int)pos.y][(int)pos.x], BLUE) && !CompareColor(selectedBoard[(int)pos.y][(int)pos.x], RED))
       return false;
     // Check if the piece is opp to the start and or empty
@@ -463,21 +479,36 @@ private:
   }
 };
 
+vector<Animation> AnimationManager::animations;
+
 int main() {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess Grid");
 
   SetTargetFPS(60);
-  Board board;
-  board.setBoard("r3r1k1/p4ppp/2p2n2/1p6/3P1qb1/2NQR3/PPB2PP1/R1B3K1 w - - 5 18");
-  board.ParseMoves("e3g3 e8e1 g1h2 e1c1 a1c1 f4h6 h2g1 h6c1");
-  board.PrintMoves();
-  board.EnemyMove();
+  Board b;
+  b.setBoard("r3r1k1/p4ppp/2p2n2/1p6/3P1qb1/2NQR3/PPB2PP1/R1B3K1 w - - 5 18");
+  b.ParseMoves("e3g3 e8e1 g1h2 e1c1 a1c1 f4h6 h2g1 h6c1");
+  b.PrintMoves();
+  b.EnemyMove();
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
     BeginDrawing();
     ClearBackground(WHITE);
-    board.Draw();
-    board.HandleClick();
+    if (IsKeyPressed(KEY_SPACE)){
+      // cout << Filer::ReadRandomLineFromFile() << endl;
+      pair<string,string> Board_Moves = Filer::ParseLine();
+      cout << Board_Moves.first << endl;
+      cout << Board_Moves.second << endl;
+      b.setBoard(Board_Moves.first);
+      b.ParseMoves(Board_Moves.second);
+      cout << "THE MOVES -------------->" << endl;
+      b.PrintMoves();
+      b.EnemyMove();
+    }
+    b.Draw();
+    AnimationManager::Draw();
+    AnimationManager::Update();
+    b.HandleClick();
     EndDrawing();
   }
 
