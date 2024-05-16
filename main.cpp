@@ -1,8 +1,10 @@
 #include "cmath"
-#include "map"
-#include "raylib.h"
 #include "headers/animate.h"
 #include "headers/database.h"
+#include "headers/gui.h"
+#include "headers/sound.h"
+#include "map"
+#include "raylib.h"
 #include <bits/stdc++.h>
 #include <ios>
 #include <iostream>
@@ -11,11 +13,24 @@
 using namespace std;
 
 #define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 800
+#define SCREEN_HEIGHT 850
 
 #define SQUARE_SIZE 100
 
 string board[8][8];
+
+string UpdateTime(int time_f) {
+  int hours = time_f / 3600;
+  int minutes = (time_f % 3600) / 60;
+  int seconds = time_f % 60;
+
+  std::ostringstream oss;
+  oss << std::setfill('0') << std::setw(2) << hours << ":" << std::setfill('0')
+      << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2)
+      << seconds;
+
+  return oss.str();
+}
 
 class Piece {
   string name;
@@ -24,6 +39,12 @@ public:
   Piece(string name) { this->name = name; }
   void virtual ViewMoves() = 0;
 };
+
+static bool inBounds(Vector2 pos) {
+  if (pos.x < 8 && pos.y < 8 && pos.x > -1 && pos.y > -1)
+    return true;
+  return false;
+}
 
 class HandlePiece {
 public:
@@ -49,7 +70,7 @@ public:
     for (int y : dy) {
       for (int x : dx) {
         int valx = pos.x + x;
-        int valy = pos.y + dir*y;
+        int valy = pos.y + dir * y;
         if (valx > -1 && valx < 8 && valy > -1 && valy < 8)
           if (board[valy][valx][0] == enemy)
             selectedBoard[valy][valx] = RED;
@@ -231,11 +252,6 @@ public:
   }
 
 private:
-  static bool inBounds(Vector2 pos) {
-    if (pos.x < 8 && pos.y < 8 && pos.x > -1 && pos.y > -1)
-      return true;
-    return false;
-  }
 };
 
 class Board {
@@ -259,7 +275,7 @@ public:
   void Reset() {
     for (int i = 0; i < 8; i++)
       for (int j = 0; j < 8; j++) {
-        Color squareColor = ((i + j) % 2 == 0) ? GRAY : WHITE;
+        Color squareColor = ((i + j) % 2 == 0) ? BLACK : WHITE;
         colorBoard[i][j] = squareColor;
         board[i][j] = "";
         selectedBoard[i][j] = WHITE;
@@ -357,9 +373,10 @@ public:
         // Draw the piece
         if (board[y][x] == "")
           continue;
-
-        DrawTexture(texs[board[y][x]], x * SQUARE_SIZE + 12,
-                    y * SQUARE_SIZE + 12, WHITE);
+        DrawTexturePro(texs[board[y][x]], Rectangle{0, 0, 16, 16},
+                       Rectangle{(float)x * SQUARE_SIZE, (float)y * SQUARE_SIZE,
+                                 SQUARE_SIZE, SQUARE_SIZE},
+                       Vector2{0, 0}, 0, WHITE);
       }
     }
   }
@@ -374,19 +391,21 @@ public:
         // 1. Blue
         // 2. That of an enemy piece / empty
         // cout << "START: " << start.y << " " << start.x << endl;
-        if (ValidMove(pos) && VerifyMove(pos)) {
+        if (inBounds(pos) && ValidMove(pos) && VerifyMove(pos)) {
           // Make this move
           // Increase the move count
           // Make the enemy Move
-          board[(int)pos.y][(int)pos.x] = board[(int)start.y][(int)start.x];
-          Animation move(&texs[board[(int)pos.y][(int)pos.x]], start, pos);
-          AnimationManager::addAnimation(move);
-          board[(int)start.y][(int)start.x] = "";
-          moveCount++;
+          // board[(int)pos.y][(int)pos.x] = board[(int)start.y][(int)start.x];
+          // Animation move(&texs[board[(int)pos.y][(int)pos.x]], start, pos);
+          // AnimationManager::addAnimation(move);
+          // PlaySound(SoundMap::soundMap[Move]);
+          // board[(int)start.y][(int)start.x] = "";
+          // moveCount++;
+          PlayMove();
           if (moveCount < moves.size())
             EnemyMove();
           else
-            cout << "WINNER" << endl;
+            NewGame();
         }
         // cout << ValidMove(pos) << " " << VerifyMove(pos) << endl;
         set = false;
@@ -396,7 +415,7 @@ public:
       }
 
       ResetBoardColor();
-      if (board[(int)pos.y][(int)pos.x][0] == playerColor) {
+      if (inBounds(pos) && board[(int)pos.y][(int)pos.x][0] == playerColor) {
         set = HandlePiece::PieceEval(board[(int)pos.y][(int)pos.x], pos,
                                      selectedBoard, board);
       }
@@ -423,8 +442,9 @@ public:
         board[(int)enemyStart.y][(int)enemyStart.x];
     board[(int)enemyStart.y][(int)enemyStart.x] = "";
     Animation move(&texs[board[(int)enemyEnd.y][(int)enemyEnd.x]], enemyStart,
-                  enemyEnd);
+                   enemyEnd);
     AnimationManager::addAnimation(move);
+    PlaySound(SoundMap::soundMap[Move]);
     moveCount++;
   }
 
@@ -435,6 +455,35 @@ public:
         pos.x == correctEnd.x && pos.y == correctEnd.y)
       return true;
     return false;
+  }
+  void PlayMove() {
+    Vector2 correctStart = moves[moveCount].first;
+    Vector2 correctEnd = moves[moveCount].second;
+    board[(int)correctEnd.y][(int)correctEnd.x] =
+        board[(int)correctStart.y][(int)correctStart.x];
+    board[(int)correctStart.y][(int)correctStart.x] = "";
+    Animation move(&texs[board[(int)correctEnd.y][(int)correctEnd.x]],
+                   correctStart, correctEnd);
+    AnimationManager::addAnimation(move);
+    PlaySound(SoundMap::soundMap[Move]);
+    moveCount++;
+  }
+  void Cheat() {
+    PlayMove();
+    if (moveCount < moves.size())
+      EnemyMove();
+    else
+      NewGame();
+  }
+  void NewGame() {
+    pair<string, string> Board_Moves = Filer::ParseLine();
+    cout << Board_Moves.first << endl;
+    cout << Board_Moves.second << endl;
+    setBoard(Board_Moves.first);
+    ParseMoves(Board_Moves.second);
+    cout << "THE MOVES -------------->" << endl;
+    PrintMoves();
+    EnemyMove();
   }
 
 private:
@@ -449,7 +498,7 @@ private:
   void ResetBoardColor() {
     for (int i = 0; i < 8; i++)
       for (int j = 0; j < 8; j++) {
-        Color squareColor = ((i + j) % 2 == 0) ? GRAY : WHITE;
+        Color squareColor = ((i + j) % 2 == 0) ? BLACK : WHITE;
         colorBoard[i][j] = squareColor;
         selectedBoard[i][j] = WHITE;
       }
@@ -461,7 +510,8 @@ private:
   }
   bool ValidMove(Vector2 pos) {
     // cout << "pos: " << pos.y << " " << pos.x << endl;
-    if (!CompareColor(selectedBoard[(int)pos.y][(int)pos.x], BLUE) && !CompareColor(selectedBoard[(int)pos.y][(int)pos.x], RED))
+    if (!CompareColor(selectedBoard[(int)pos.y][(int)pos.x], BLUE) &&
+        !CompareColor(selectedBoard[(int)pos.y][(int)pos.x], RED))
       return false;
     // Check if the piece is opp to the start and or empty
     if (board[(int)pos.y][(int)pos.x] == "")
@@ -481,22 +531,30 @@ private:
 
 vector<Animation> AnimationManager::animations;
 
+map<SoundType, Sound> SoundMap::soundMap;
+
 int main() {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess Grid");
-
+  InitAudioDevice();
   SetTargetFPS(60);
   Board b;
   b.setBoard("r3r1k1/p4ppp/2p2n2/1p6/3P1qb1/2NQR3/PPB2PP1/R1B3K1 w - - 5 18");
   b.ParseMoves("e3g3 e8e1 g1h2 e1c1 a1c1 f4h6 h2g1 h6c1");
   b.PrintMoves();
   b.EnemyMove();
+  SoundMap::Init();
+  string time = "00:00:00";
+  // Make a function that updates the string time
+  Label label(Vector2{400 - 48 * 3 / 2, 800}, &time);
+  SmallButton Button(Vector2{0, 800});
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
     BeginDrawing();
-    ClearBackground(WHITE);
-    if (IsKeyPressed(KEY_SPACE)){
+    ClearBackground(BLACK);
+    time = UpdateTime((int)GetTime());
+    if (IsKeyPressed(KEY_SPACE)) {
       // cout << Filer::ReadRandomLineFromFile() << endl;
-      pair<string,string> Board_Moves = Filer::ParseLine();
+      pair<string, string> Board_Moves = Filer::ParseLine();
       cout << Board_Moves.first << endl;
       cout << Board_Moves.second << endl;
       b.setBoard(Board_Moves.first);
@@ -505,7 +563,12 @@ int main() {
       b.PrintMoves();
       b.EnemyMove();
     }
+    if (IsKeyPressed(KEY_RIGHT))
+      b.Cheat();
     b.Draw();
+    Button.Update();
+    label.Draw();
+    Button.Draw();
     AnimationManager::Draw();
     AnimationManager::Update();
     b.HandleClick();

@@ -19,12 +19,12 @@ class Animation {
   float dy, dx;
 public:
   Animation(Texture2D *sprite, Vector2 origin, Vector2 position): sprite(sprite){
-    this -> origin = {origin.x*100 + 12, origin.y*100 + 12};
-    this -> position = {position.x*100 + 12, position.y*100 + 12};
+    this -> origin = {origin.x*100, origin.y*100};
+    this -> position = {position.x*100, position.y*100};
     source = {0, 0, (float)sprite->width, (float)sprite->height};
     currentFrame = 0;
     TotalFrames = 30;
-    destination = {origin.x*100 + 12, origin.y*100 + 12, (float)sprite->width, (float)sprite->height};
+    destination = {origin.x*100, origin.y*100, 100, 100};
   }
   
   void Draw() {
