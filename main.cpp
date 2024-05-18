@@ -18,6 +18,10 @@ using namespace std;
 #define SQUARE_SIZE 100
 
 string board[8][8];
+Color colorBoard[8][8];
+Color selectedBoard[8][8];
+int score = 0;
+string score_str = "0";
 
 string UpdateTime(int time_f) {
   int hours = time_f / 3600;
@@ -255,10 +259,9 @@ private:
 };
 
 class Board {
-  Color colorBoard[8][8];
-  Color selectedBoard[8][8];
   map<string, Texture2D> texs;
   Vector2 start = {-1, -1}, end = {-1, -1};
+  double timeStarted;
   bool set = false;
   vector<pair<Vector2, Vector2>> moves;
   int moveCount = 0;
@@ -282,6 +285,8 @@ public:
       }
     moves.erase(moves.begin(), moves.end());
     moveCount = 0;
+    timeStarted = GetTime();
+    set = false;
   }
   Board() {
     Reset();
@@ -289,7 +294,7 @@ public:
     string pieces[] = {"wP", "wN", "wB", "wR", "wQ", "wK",
                        "bP", "bN", "bB", "bR", "bQ", "bK"};
     for (string name : pieces) {
-      string texName = "../assets/" + name + ".png";
+      string texName = "./assets/" + name + ".png";
       texs[name] = LoadTexture(texName.c_str());
     }
     castleB[0] = castleB[1] = false;
@@ -393,19 +398,13 @@ public:
         // cout << "START: " << start.y << " " << start.x << endl;
         if (inBounds(pos) && ValidMove(pos) && VerifyMove(pos)) {
           // Make this move
-          // Increase the move count
-          // Make the enemy Move
-          // board[(int)pos.y][(int)pos.x] = board[(int)start.y][(int)start.x];
-          // Animation move(&texs[board[(int)pos.y][(int)pos.x]], start, pos);
-          // AnimationManager::addAnimation(move);
-          // PlaySound(SoundMap::soundMap[Move]);
-          // board[(int)start.y][(int)start.x] = "";
-          // moveCount++;
           PlayMove();
           if (moveCount < moves.size())
             EnemyMove();
-          else
+          else {
+            UpdateScore();
             NewGame();
+          }
         }
         // cout << ValidMove(pos) << " " << VerifyMove(pos) << endl;
         set = false;
@@ -441,8 +440,8 @@ public:
     board[(int)enemyEnd.y][(int)enemyEnd.x] =
         board[(int)enemyStart.y][(int)enemyStart.x];
     board[(int)enemyStart.y][(int)enemyStart.x] = "";
-    Animation move(&texs[board[(int)enemyEnd.y][(int)enemyEnd.x]], enemyStart,
-                   enemyEnd);
+    MovePieceAnim *move = new MovePieceAnim(
+        &texs[board[(int)enemyEnd.y][(int)enemyEnd.x]], enemyStart, enemyEnd);
     AnimationManager::addAnimation(move);
     PlaySound(SoundMap::soundMap[Move]);
     moveCount++;
@@ -462,8 +461,9 @@ public:
     board[(int)correctEnd.y][(int)correctEnd.x] =
         board[(int)correctStart.y][(int)correctStart.x];
     board[(int)correctStart.y][(int)correctStart.x] = "";
-    Animation move(&texs[board[(int)correctEnd.y][(int)correctEnd.x]],
-                   correctStart, correctEnd);
+    MovePieceAnim *move =
+        new MovePieceAnim(&texs[board[(int)correctEnd.y][(int)correctEnd.x]],
+                          correctStart, correctEnd);
     AnimationManager::addAnimation(move);
     PlaySound(SoundMap::soundMap[Move]);
     moveCount++;
@@ -472,8 +472,31 @@ public:
     PlayMove();
     if (moveCount < moves.size())
       EnemyMove();
-    else
+    else {
+      UpdateScore();
       NewGame();
+    }
+  }
+  void UpdateScore() {
+    double detalTime = GetTime() - timeStarted;
+    if (detalTime >= 2 * 60)
+      score += 100;
+    else if (detalTime >= 60)
+      score += 200;
+    else if (detalTime >= 30)
+      score += 300;
+    else if (detalTime >= 20)
+      score += 400;
+    else if (detalTime >= 10)
+      score += 500;
+    else
+      score += 1000;
+    // Make an animation for the score
+    score_str = to_string(score);
+    PlaySound(SoundMap::soundMap[SCORE]);
+    TextAnim *scoreAnim =
+        new TextAnim(score_str, Vector2{650, 800}, Vector2{650, 700});
+    AnimationManager::addAnimation(scoreAnim);
   }
   void NewGame() {
     pair<string, string> Board_Moves = Filer::ParseLine();
@@ -529,7 +552,7 @@ private:
   }
 };
 
-vector<Animation> AnimationManager::animations;
+unordered_multiset<Animation *> AnimationManager::animations;
 
 map<SoundType, Sound> SoundMap::soundMap;
 
@@ -545,7 +568,8 @@ int main() {
   SoundMap::Init();
   string time = "00:00:00";
   // Make a function that updates the string time
-  Label label(Vector2{400 - 48 * 3 / 2, 800}, &time);
+  Label Time(Vector2{400 - 48 * 3 / 2, 800}, &time);
+  Label score(Vector2{650, 800}, &score_str);
   SmallButton Button(Vector2{0, 800});
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
@@ -567,7 +591,8 @@ int main() {
       b.Cheat();
     b.Draw();
     Button.Update();
-    label.Draw();
+    Time.Draw();
+    score.Draw();
     Button.Draw();
     AnimationManager::Draw();
     AnimationManager::Update();

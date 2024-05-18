@@ -2,3 +2,5 @@ assets/lichess_db_puzzle.csv.zst
 build
 build
 assets/lichess_db_puzzle.csv
+.cache/clangd/index
+out/Debug

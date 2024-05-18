@@ -13,7 +13,7 @@ class SmallButton {
 
 public:
   SmallButton(Vector2 pos) {
-    gui = LoadTexture("../assets/GUI.png");
+    gui = LoadTexture("./assets/GUI.png");
     dst = {pos.x, pos.y, 48, 48};
     pressed = false;
     src_button = {0, 5 * 16, 16, 16};
@@ -46,13 +46,13 @@ class Label{
 
 public:
   Label(Vector2 pos, string *text): text(text) {
-    gui = LoadTexture("../assets/GUI.png");
+    gui = LoadTexture("./assets/GUI.png");
     dst = {pos.x, pos.y, 48*3, 48};
     src = {3*16, 3*16, 16*3, 16};
   }
   void Draw() {
     DrawTexturePro(gui, src, dst, {0, 0}, 0, WHITE);
-    DrawText(text->c_str(), dst.x + 48/2 + 10, dst.y + 10, 20, WHITE);
+    DrawText(text->c_str(), dst.x + 48*3/2 - MeasureText(text->c_str(), 20)/2, dst.y + 10, 20, WHITE);
   }
 };
 

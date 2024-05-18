@@ -10,7 +10,7 @@ using namespace std;
 class Filer {
 public:
   static string ReadRandomLineFromFile() {
-    ifstream file("../assets/lichess_db_puzzle.csv");
+    ifstream file("./assets/lichess_db_puzzle.csv");
     if (!file.is_open()) {
       std::cerr << "Error: Unable to open file "
                 << "Database" << std::endl;
