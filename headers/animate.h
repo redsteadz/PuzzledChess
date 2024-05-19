@@ -77,7 +77,7 @@ public:
     destination = {origin.x, origin.y, 100, 100};
   }
   void Draw() override {
-    cout << "DRAWING THE TEXT " << destination.x << " " << destination.y <<endl;
+    // cout << "DRAWING THE TEXT " << destination.x << " " << destination.y <<endl;
     DrawText(text.c_str(), destination.x, destination.y, 30, SKYBLUE);
   }
 };

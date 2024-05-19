@@ -52,8 +52,7 @@ static bool inBounds(Vector2 pos) {
 
 class HandlePiece {
 public:
-  static void Pawn(string name, Vector2 pos, Color selectedBoard[8][8],
-                   string board[8][8]) {
+  static void Pawn(string name, Vector2 pos) {
     char enemy = name[0] == 'w' ? 'b' : 'w';
     bool homeRow = ((name[0] == 'w') ? 7 - pos.y : pos.y) == 1;
     int mag = homeRow ? 2 : 1;
@@ -82,8 +81,7 @@ public:
     }
   }
 
-  static void Bishop(string name, Vector2 pos, Color selectedBoard[8][8],
-                     string board[8][8]) {
+  static void Bishop(string name, Vector2 pos) {
     char enemy = name[0] == 'w' ? 'b' : 'w';
 
     // Highlight all the diagonals if in bounds
@@ -129,8 +127,7 @@ public:
     }
   }
 
-  static void Rook(string name, Vector2 pos, Color selectedBoard[8][8],
-                   string board[8][8]) {
+  static void Rook(string name, Vector2 pos) {
     // Highlight all the rows if in bounds
     char enemy = name[0] == 'w' ? 'b' : 'w';
     // Go Horizontal Right
@@ -182,8 +179,7 @@ public:
     }
   }
 
-  void static Knight(string name, Vector2 pos, Color selectedBoard[8][8],
-                     string board[8][8]) {
+  void static Knight(string name, Vector2 pos) {
     // Highlight all the rows if in bounds
     char enemy = name[0] == 'w' ? 'b' : 'w';
 
@@ -200,8 +196,7 @@ public:
     }
   }
 
-  static void King(string name, Vector2 pos, Color selectedBoard[8][8],
-                   string board[8][8]) {
+  static void King(string name, Vector2 pos) {
     char enemy = name[0] == 'w' ? 'b' : 'w';
     int dx[] = {0, 1, -1};
     for (int i = 0; i < 3; i++) {
@@ -218,35 +213,33 @@ public:
     }
   }
 
-  static void Queen(string name, Vector2 pos, Color selectedBoard[8][8],
-                    string board[8][8]) {
-    Bishop(name, pos, selectedBoard, board);
-    Rook(name, pos, selectedBoard, board);
+  static void Queen(string name, Vector2 pos) {
+    Bishop(name, pos);
+    Rook(name, pos);
   }
 
-  static bool PieceEval(string name, Vector2 pos, Color selectedBoard[8][8],
-                        string board[8][8]) {
+  static bool PieceEval(string name, Vector2 pos) {
     if (name.length() < 2)
       return 0;
     char piece = name[1];
     switch (piece) {
     case 'P':
-      Pawn(name, pos, selectedBoard, board);
+      Pawn(name, pos);
       break;
     case 'N':
-      Knight(name, pos, selectedBoard, board);
+      Knight(name, pos);
       break;
     case 'B':
-      Bishop(name, pos, selectedBoard, board);
+      Bishop(name, pos);
       break;
     case 'R':
-      Rook(name, pos, selectedBoard, board);
+      Rook(name, pos);
       break;
     case 'Q':
-      Queen(name, pos, selectedBoard, board);
+      Queen(name, pos);
       break;
     case 'K':
-      King(name, pos, selectedBoard, board);
+      King(name, pos);
       break;
     default:
       cout << "Piece not found";
@@ -415,8 +408,7 @@ public:
 
       ResetBoardColor();
       if (inBounds(pos) && board[(int)pos.y][(int)pos.x][0] == playerColor) {
-        set = HandlePiece::PieceEval(board[(int)pos.y][(int)pos.x], pos,
-                                     selectedBoard, board);
+        set = HandlePiece::PieceEval(board[(int)pos.y][(int)pos.x], pos);
       }
       if (set)
         start = pos;
