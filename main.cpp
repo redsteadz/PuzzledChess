@@ -1,4 +1,5 @@
 #include "cmath"
+#include "headers/constant.h"
 #include "headers/animate.h"
 #include "headers/database.h"
 #include "headers/gui.h"
@@ -12,14 +13,10 @@
 #include <utility>
 using namespace std;
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 850
-
-#define SQUARE_SIZE 100
 
 string board[8][8];
 Color colorBoard[8][8];
-Color selectedBoard[8][8];
+vector<vector<Color>> selectedBoard(8, vector<Color>(8));
 int score = 0;
 string score_str = "0";
 
@@ -87,40 +84,49 @@ public:
     // Highlight all the diagonals if in bounds
     // Top Right
     for (int i = 1; i < 8; i++) {
+      Vector2 newPos = {pos.x + i, pos.y - i}; 
       if (inBounds(Vector2{pos.x + i, pos.y - i})) {
         Color color =
             board[(int)pos.y - i][(int)pos.x + i][0] == enemy ? RED : BLUE;
-        selectedBoard[(int)pos.y - i][(int)pos.x + i] = color;
+        ExpandAnimation *anim = new ExpandAnimation(newPos, 0.2, selectedBoard, color);
+        AnimationManager::addAnimation(anim);
         if (board[(int)pos.y - i][(int)pos.x + i] != "")
           break;
       }
     }
     // Top Left
     for (int i = 1; i < 8; i++) {
+      Vector2 newPos = {pos.x - i, pos.y - i}; 
       if (inBounds(Vector2{pos.x - i, pos.y - i})) {
         Color color =
             board[(int)pos.y - i][(int)pos.x - i][0] == enemy ? RED : BLUE;
-        selectedBoard[(int)pos.y - i][(int)pos.x - i] = color;
+        ExpandAnimation *anim = new ExpandAnimation(newPos, 0.2, selectedBoard, color);
+        AnimationManager::addAnimation(anim);
         if (board[(int)pos.y - i][(int)pos.x - i] != "")
           break;
       }
     }
     // Bottom Right
     for (int i = 1; i < 8; i++) {
-      if (inBounds(Vector2{pos.x + i, pos.y + i})) {
+      Vector2 newPos = {pos.x + i, pos.y + i}; 
+      if (inBounds(newPos)) {
         Color color =
-            board[(int)pos.y + i][(int)pos.x + i][0] == enemy ? RED : BLUE;
-        selectedBoard[(int)pos.y + i][(int)pos.x + i] = color;
-        if (board[(int)pos.y + i][(int)pos.x + i] != "")
+            board[(int)newPos.y][(int)newPos.x][0] == enemy ? RED : BLUE;
+        // selectedBoard[(int)newPos.y][(int)newPos.x] = color;
+        ExpandAnimation *anim = new ExpandAnimation(newPos, 0.2, selectedBoard, color);
+        AnimationManager::addAnimation(anim);
+        if (board[(int)newPos.y][(int)newPos.x] != "")
           break;
       }
     }
     // Bottom Left
     for (int i = 1; i < 8; i++) {
+      Vector2 newPos = {pos.x - i, pos.y + i}; 
       if (inBounds(Vector2{pos.x - i, pos.y + i})) {
         Color color =
             board[(int)pos.y + i][(int)pos.x - i][0] == enemy ? RED : BLUE;
-        selectedBoard[(int)pos.y + i][(int)pos.x - i] = color;
+        ExpandAnimation *anim = new ExpandAnimation(newPos, 0.2, selectedBoard, color);
+        AnimationManager::addAnimation(anim);
         if (board[(int)pos.y + i][(int)pos.x - i] != "")
           break;
       }
@@ -258,7 +264,6 @@ class Board {
   bool set = false;
   vector<pair<Vector2, Vector2>> moves;
   int moveCount = 0;
-  int gap = 5;
   // 0 is NPC 1 is player
   char playerColor = 'w';
   // bool enPassant[2];

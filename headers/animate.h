@@ -1,5 +1,7 @@
+#include "constant.h"
 #include <iostream>
 #include <math.h>
+#include <functional>
 #include <raylib.h>
 #include <raymath.h>
 #include <unordered_set>
@@ -34,7 +36,7 @@ public:
 
   virtual void Draw() = 0;
 
-  bool Update() {
+  virtual bool Update() {
     // Update until destination.x reaches position.x
     // cout << currentFrame << " " << TotalFrames << endl;
     if (currentFrame <= TotalFrames) {
@@ -48,6 +50,46 @@ public:
     return false;
   }
   virtual ~Animation() {}
+};
+
+class ExpandAnimation : public Animation {
+  float size;
+  // Texture2D *sprite;
+  Color **selectedBoard;
+  Color color;
+public:
+  ExpandAnimation(Vector2 position, double size, vector<vector<Color>> &sB, Color col)
+      : Animation(position, position), size(size), color(col){
+    for(int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) selectedBoard[i][j] = sB[i][j];
+    source = {0, 0, (float)100, (float)100};
+    // This is the position to draw
+    destination = {position.x * SQUARE_SIZE + gap,
+                   position.y * SQUARE_SIZE + gap, SQUARE_SIZE - gap * 2,
+                   SQUARE_SIZE - gap * 2};
+  }
+  // The size expands from the one specified to 1
+  bool Update() override {
+    // Update until destination.x reaches position.x
+    // cout << currentFrame << " " << TotalFrames << endl;
+    if (currentFrame <= TotalFrames) {
+      size = Lerp(size, 1.0, (float)currentFrame / TotalFrames);
+      currentFrame++;
+      return true;
+    }
+    
+    selectedBoard[(int)position.y][(int)position.x] = color;
+    return false;
+  }
+  void Draw() override {
+    // Use the value of size to set the destination of sprite to be centered but
+    // size
+    float size_T = 1 - this->size;
+    Rectangle destination = {this->destination.x + SQUARE_SIZE * size_T / 2,
+                             this->destination.y + SQUARE_SIZE * size_T / 2,
+                             this->destination.width * size,
+                             this->destination.height * size};
+    DrawRectangleRec(destination, ORANGE);
+  }
 };
 
 class MovePieceAnim : public Animation {
@@ -77,14 +119,14 @@ public:
     destination = {origin.x, origin.y, 100, 100};
   }
   void Draw() override {
-    // cout << "DRAWING THE TEXT " << destination.x << " " << destination.y <<endl;
+    // cout << "DRAWING THE TEXT " << destination.x << " " << destination.y
+    // <<endl;
     DrawText(text.c_str(), destination.x, destination.y, 30, SKYBLUE);
   }
 };
 
 class AnimationManager {
-  static std::unordered_multiset<Animation *> animations;
-
+  static unordered_multiset<Animation *> animations;
 public:
   static void addAnimation(Animation *animation) {
     animations.insert(animation);
