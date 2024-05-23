@@ -1,6 +1,6 @@
 #include "cmath"
-#include "headers/constant.h"
 #include "headers/animate.h"
+#include "headers/constant.h"
 #include "headers/database.h"
 #include "headers/gui.h"
 #include "headers/sound.h"
@@ -12,7 +12,6 @@
 #include <string>
 #include <utility>
 using namespace std;
-
 
 string board[8][8];
 Color colorBoard[8][8];
@@ -84,11 +83,12 @@ public:
     // Highlight all the diagonals if in bounds
     // Top Right
     for (int i = 1; i < 8; i++) {
-      Vector2 newPos = {pos.x + i, pos.y - i}; 
+      Vector2 newPos = {pos.x + i, pos.y - i};
       if (inBounds(Vector2{pos.x + i, pos.y - i})) {
         Color color =
             board[(int)pos.y - i][(int)pos.x + i][0] == enemy ? RED : BLUE;
-        ExpandAnimation *anim = new ExpandAnimation(newPos, 0.2, selectedBoard, color);
+        ExpandAnimation *anim =
+            new ExpandAnimation(newPos, 0.2, &selectedBoard, color);
         AnimationManager::addAnimation(anim);
         if (board[(int)pos.y - i][(int)pos.x + i] != "")
           break;
@@ -96,11 +96,12 @@ public:
     }
     // Top Left
     for (int i = 1; i < 8; i++) {
-      Vector2 newPos = {pos.x - i, pos.y - i}; 
+      Vector2 newPos = {pos.x - i, pos.y - i};
       if (inBounds(Vector2{pos.x - i, pos.y - i})) {
         Color color =
             board[(int)pos.y - i][(int)pos.x - i][0] == enemy ? RED : BLUE;
-        ExpandAnimation *anim = new ExpandAnimation(newPos, 0.2, selectedBoard, color);
+        ExpandAnimation *anim =
+            new ExpandAnimation(newPos, 0.2, &selectedBoard, color);
         AnimationManager::addAnimation(anim);
         if (board[(int)pos.y - i][(int)pos.x - i] != "")
           break;
@@ -108,12 +109,13 @@ public:
     }
     // Bottom Right
     for (int i = 1; i < 8; i++) {
-      Vector2 newPos = {pos.x + i, pos.y + i}; 
+      Vector2 newPos = {pos.x + i, pos.y + i};
       if (inBounds(newPos)) {
         Color color =
             board[(int)newPos.y][(int)newPos.x][0] == enemy ? RED : BLUE;
         // selectedBoard[(int)newPos.y][(int)newPos.x] = color;
-        ExpandAnimation *anim = new ExpandAnimation(newPos, 0.2, selectedBoard, color);
+        ExpandAnimation *anim =
+            new ExpandAnimation(newPos, 0.2, &selectedBoard, color);
         AnimationManager::addAnimation(anim);
         if (board[(int)newPos.y][(int)newPos.x] != "")
           break;
@@ -121,11 +123,12 @@ public:
     }
     // Bottom Left
     for (int i = 1; i < 8; i++) {
-      Vector2 newPos = {pos.x - i, pos.y + i}; 
+      Vector2 newPos = {pos.x - i, pos.y + i};
       if (inBounds(Vector2{pos.x - i, pos.y + i})) {
         Color color =
             board[(int)pos.y + i][(int)pos.x - i][0] == enemy ? RED : BLUE;
-        ExpandAnimation *anim = new ExpandAnimation(newPos, 0.2, selectedBoard, color);
+        ExpandAnimation *anim =
+            new ExpandAnimation(newPos, 0.2, &selectedBoard, color);
         AnimationManager::addAnimation(anim);
         if (board[(int)pos.y + i][(int)pos.x - i] != "")
           break;
@@ -366,20 +369,32 @@ public:
   void Draw() {
     for (int y = 0; y < 8; y++) {
       for (int x = 0; x < 8; x++) {
-        // Draw the square
+        // Draw the square with color from colorBoard
         DrawRectangle(x * SQUARE_SIZE, y * SQUARE_SIZE, SQUARE_SIZE,
                       SQUARE_SIZE, colorBoard[y][x]);
-        if (!CompareColor(selectedBoard[y][x], WHITE))
+      }
+    }
+    for (int y = 0; y < 8; y++) {
+      for (int x = 0; x < 8; x++) {
+        // Draw colored square on selectedBoard if the color is not WHITE
+        if (!CompareColor(selectedBoard[y][x], WHITE)) {
           DrawRectangle(x * SQUARE_SIZE + gap, y * SQUARE_SIZE + gap,
                         SQUARE_SIZE - gap * 2, SQUARE_SIZE - gap * 2,
                         selectedBoard[y][x]);
-        // Draw the piece
-        if (board[y][x] == "")
-          continue;
-        DrawTexturePro(texs[board[y][x]], Rectangle{0, 0, 16, 16},
-                       Rectangle{(float)x * SQUARE_SIZE, (float)y * SQUARE_SIZE,
-                                 SQUARE_SIZE, SQUARE_SIZE},
-                       Vector2{0, 0}, 0, WHITE);
+        }
+      }
+    }
+    AnimationManager::Draw();
+    for (int y = 0; y < 8; y++) {
+      for (int x = 0; x < 8; x++) {
+        // Draw the piece if the board cell is not empty
+        if (board[y][x] != "") {
+          DrawTexturePro(texs[board[y][x]], Rectangle{0, 0, 16, 16},
+                         Rectangle{(float)x * SQUARE_SIZE,
+                                   (float)y * SQUARE_SIZE, SQUARE_SIZE,
+                                   SQUARE_SIZE},
+                         Vector2{0, 0}, 0, WHITE);
+        }
       }
     }
   }
@@ -591,7 +606,7 @@ int main() {
     Time.Draw();
     score.Draw();
     Button.Draw();
-    AnimationManager::Draw();
+    // AnimationManager::Draw();
     AnimationManager::Update();
     b.HandleClick();
     EndDrawing();

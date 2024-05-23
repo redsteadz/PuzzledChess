@@ -55,12 +55,13 @@ public:
 class ExpandAnimation : public Animation {
   float size;
   // Texture2D *sprite;
-  Color **selectedBoard;
+  vector<vector<Color>> *vec;
   Color color;
 public:
-  ExpandAnimation(Vector2 position, double size, vector<vector<Color>> &sB, Color col)
+  ExpandAnimation(Vector2 position, double size, vector<vector<Color>> *sB, Color col)
       : Animation(position, position), size(size), color(col){
-    for(int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) selectedBoard[i][j] = sB[i][j];
+    vec = sB;
+    this->position = position;
     source = {0, 0, (float)100, (float)100};
     // This is the position to draw
     destination = {position.x * SQUARE_SIZE + gap,
@@ -76,8 +77,8 @@ public:
       currentFrame++;
       return true;
     }
-    
-    selectedBoard[(int)position.y][(int)position.x] = color;
+    ResetBoard();
+    (*vec)[(int)position.y][(int)position.x] = color;
     return false;
   }
   void Draw() override {
@@ -88,7 +89,12 @@ public:
                              this->destination.y + SQUARE_SIZE * size_T / 2,
                              this->destination.width * size,
                              this->destination.height * size};
-    DrawRectangleRec(destination, ORANGE);
+    DrawRectangleRec(destination, color);
+  }
+
+private: 
+  void ResetBoard(){
+    for (int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) (*vec)[i][j] = WHITE;
   }
 };
 
