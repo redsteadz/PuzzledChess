@@ -59,7 +59,10 @@ public:
       if (inBounds(Vector2{pos.x, pos.y - i * dir})) {
         if (board[(int)pos.y - i * dir][(int)pos.x] != "")
           break;
-        selectedBoard[(int)pos.y - i * dir][(int)pos.x] = BLUE;
+        // selectedBoard[(int)pos.y - i * dir][(int)pos.x] = BLUE;
+        ExpandAnimation *anim = new ExpandAnimation(
+            {(float)pos.x, (float)pos.y - i * dir}, 0.2, &selectedBoard, BLUE);
+        AnimationManager::addAnimation(anim);
       }
     }
 
@@ -71,8 +74,12 @@ public:
         int valx = pos.x + x;
         int valy = pos.y + dir * y;
         if (valx > -1 && valx < 8 && valy > -1 && valy < 8)
-          if (board[valy][valx][0] == enemy)
-            selectedBoard[valy][valx] = RED;
+          if (board[valy][valx][0] == enemy){
+            // selectedBoard[valy][valx] = RED;
+            ExpandAnimation *anim = new ExpandAnimation(
+                {(float)valx, (float)valy}, 0.2, &selectedBoard, RED);
+            AnimationManager::addAnimation(anim);
+          }
       }
     }
   }
@@ -142,9 +149,15 @@ public:
     // Go Horizontal Right
     for (int i = pos.x + 1; i < 8; i++) {
       if (board[(int)pos.y][i] == "") {
-        selectedBoard[(int)pos.y][i] = BLUE;
+        // selectedBoard[(int)pos.y][i] = BLUE;
+        ExpandAnimation *anim =
+            new ExpandAnimation({(float)i, pos.y}, 0.2, &selectedBoard, BLUE);
+        AnimationManager::addAnimation(anim);
       } else if (board[(int)pos.y][i][0] == enemy) {
-        selectedBoard[(int)pos.y][i] = RED;
+        // selectedBoard[(int)pos.y][i] = RED;
+        ExpandAnimation *anim =
+            new ExpandAnimation({(float)i, pos.y}, 0.2, &selectedBoard, RED);
+        AnimationManager::addAnimation(anim);
         break;
       } else {
         break;
@@ -154,9 +167,15 @@ public:
     // Go Horizontal Left
     for (int i = pos.x - 1; i > -1; i--) {
       if (board[(int)pos.y][i] == "") {
-        selectedBoard[(int)pos.y][i] = BLUE;
+        // selectedBoard[(int)pos.y][i] = BLUE;
+        ExpandAnimation *anim =
+            new ExpandAnimation({(float)i, pos.y}, 0.2, &selectedBoard, BLUE);
+        AnimationManager::addAnimation(anim);
       } else if (board[(int)pos.y][i][0] == enemy) {
-        selectedBoard[(int)pos.y][i] = RED;
+        // selectedBoard[(int)pos.y][i] = RED;
+        ExpandAnimation *anim =
+            new ExpandAnimation({(float)i, pos.y}, 0.2, &selectedBoard, RED);
+        AnimationManager::addAnimation(anim);
         break;
       } else {
         break;
@@ -166,9 +185,15 @@ public:
     // Go Vertical Up
     for (int i = pos.y - 1; i > -1; i--) {
       if (board[i][(int)pos.x] == "") {
-        selectedBoard[i][(int)pos.x] = BLUE;
+        // selectedBoard[i][(int)pos.x] = BLUE;
+        ExpandAnimation *anim =
+            new ExpandAnimation({pos.x, (float)i}, 0.2, &selectedBoard, BLUE);
+        AnimationManager::addAnimation(anim);
       } else if (board[i][(int)pos.x][0] == enemy) {
-        selectedBoard[i][(int)pos.x] = RED;
+        // selectedBoard[i][(int)pos.x] = RED;
+        ExpandAnimation *anim =
+            new ExpandAnimation({pos.x, (float)i}, 0.2, &selectedBoard, RED);
+        AnimationManager::addAnimation(anim);
         break;
       } else {
         break;
@@ -178,9 +203,15 @@ public:
     // Go Vertical Down
     for (int i = pos.y + 1; i < 8; i++) {
       if (board[i][(int)pos.x] == "") {
-        selectedBoard[i][(int)pos.x] = BLUE;
+        // selectedBoard[i][(int)pos.x] = BLUE;
+        ExpandAnimation *anim =
+            new ExpandAnimation({pos.x, (float)i}, 0.2, &selectedBoard, BLUE);
+        AnimationManager::addAnimation(anim);
       } else if (board[i][(int)pos.x][0] == enemy) {
-        selectedBoard[i][(int)pos.x] = RED;
+        // selectedBoard[i][(int)pos.x] = RED;
+        ExpandAnimation *anim =
+            new ExpandAnimation({pos.x, (float)i}, 0.2, &selectedBoard, RED);
+        AnimationManager::addAnimation(anim);
         break;
       } else {
         break;
@@ -197,10 +228,18 @@ public:
     for (int i = 0; i < 8; i++) {
       Vector2 newP = {pos.x + delrow[i], pos.y + delcol[i]};
       if (inBounds(newP)) {
-        if (board[(int)newP.y][(int)newP.x] == "")
-          selectedBoard[(int)newP.y][(int)newP.x] = BLUE;
-        if (board[(int)newP.y][(int)newP.x][0] == enemy)
-          selectedBoard[(int)newP.y][(int)newP.x] = RED;
+        if (board[(int)newP.y][(int)newP.x] == ""){
+          // selectedBoard[(int)newP.y][(int)newP.x] = BLUE;
+          ExpandAnimation *anim =
+              new ExpandAnimation(newP, 0.2, &selectedBoard, BLUE);
+        AnimationManager::addAnimation(anim);
+        }
+        if (board[(int)newP.y][(int)newP.x][0] == enemy){
+          // selectedBoard[(int)newP.y][(int)newP.x] = RED;
+          ExpandAnimation *anim =
+              new ExpandAnimation(newP, 0.2, &selectedBoard, RED);
+        AnimationManager::addAnimation(anim);
+        }
       }
     }
   }
@@ -213,10 +252,18 @@ public:
         int x = pos.x + dx[i];
         int y = pos.y + dx[j];
         if (x < 8 && y < 8 && x > -1 && y > -1) {
-          if (board[y][x][0] == enemy)
-            selectedBoard[y][x] = RED;
-          if (board[y][x] == "")
-            selectedBoard[y][x] = BLUE;
+          if (board[y][x][0] == enemy){
+            // selectedBoard[y][x] = RED;
+            ExpandAnimation *anim =
+                new ExpandAnimation({(float)x, (float)y}, 0.2, &selectedBoard, RED);
+            AnimationManager::addAnimation(anim);
+          }
+          if (board[y][x] == ""){
+            // selectedBoard[y][x] = BLUE;
+            ExpandAnimation *anim =
+                new ExpandAnimation({(float)x, (float)y}, 0.2, &selectedBoard, BLUE);
+            AnimationManager::addAnimation(anim);
+          }
         }
       }
     }
@@ -537,6 +584,7 @@ private:
         colorBoard[i][j] = squareColor;
         selectedBoard[i][j] = WHITE;
       }
+    AnimationManager::clearBoard();
   }
   Vector2 MousePos() {
     Vector2 mouse = GetMousePosition();

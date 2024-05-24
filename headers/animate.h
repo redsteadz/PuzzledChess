@@ -13,6 +13,12 @@ using namespace std;
 // Make a base class for animations and then make a derived class for each type
 // of animations
 
+enum class AnimationType {
+  SquareExpand,
+  PieceMove,
+  Text
+};
+
 class Animation {
 protected:
   float duration;
@@ -23,15 +29,19 @@ protected:
   int TotalFrames;
   Vector2 position;
   float dy, dx;
-
+  AnimationType type;
 public:
-  Animation(Vector2 origin, Vector2 position) {
+  Animation(Vector2 origin, Vector2 position, AnimationType type) : type(type){
     this->origin = {origin.x * 100, origin.y * 100};
     this->position = {position.x * 100, position.y * 100};
     // source = {0, 0, (float)sprite->width, (float)sprite->height};
     currentFrame = 0;
     TotalFrames = 30;
     destination = {origin.x * 100, origin.y * 100, 100, 100};
+  }
+  
+  AnimationType getType() {
+    return type;
   }
 
   virtual void Draw() = 0;
@@ -59,7 +69,7 @@ class ExpandAnimation : public Animation {
   Color color;
 public:
   ExpandAnimation(Vector2 position, double size, vector<vector<Color>> *sB, Color col)
-      : Animation(position, position), size(size), color(col){
+      : Animation(position, position, AnimationType::SquareExpand), size(size), color(col){
     vec = sB;
     this->position = position;
     source = {0, 0, (float)100, (float)100};
@@ -77,7 +87,6 @@ public:
       currentFrame++;
       return true;
     }
-    ResetBoard();
     (*vec)[(int)position.y][(int)position.x] = color;
     return false;
   }
@@ -91,11 +100,6 @@ public:
                              this->destination.height * size};
     DrawRectangleRec(destination, color);
   }
-
-private: 
-  void ResetBoard(){
-    for (int i = 0; i < 8; i++) for (int j = 0; j < 8; j++) (*vec)[i][j] = WHITE;
-  }
 };
 
 class MovePieceAnim : public Animation {
@@ -103,7 +107,7 @@ class MovePieceAnim : public Animation {
 
 public:
   MovePieceAnim(Texture2D *sprite, Vector2 origin, Vector2 position)
-      : Animation(origin, position) {
+      : Animation(origin, position, AnimationType::PieceMove) {
     this->sprite = sprite;
     source = {0, 0, (float)sprite->width, (float)sprite->height};
   }
@@ -117,7 +121,7 @@ class TextAnim : public Animation {
 
 public:
   TextAnim(string text, Vector2 origin, Vector2 position)
-      : Animation(origin, position) {
+      : Animation(origin, position, AnimationType::Text) {
     this->text = text;
     // Update Destination to be properly used
     this->origin = {origin.x, origin.y};
@@ -132,6 +136,7 @@ public:
 };
 
 class AnimationManager {
+  // Maybe seperate Game Animations and GUI animations to control them individually ?
   static unordered_multiset<Animation *> animations;
 public:
   static void addAnimation(Animation *animation) {
@@ -153,6 +158,16 @@ public:
   static void Draw() {
     for (Animation *animation : animations) {
       animation->Draw();
+    }
+  }
+  static void clearBoard() { 
+    // Erase all animations of "SquareExpand"
+    for (auto it = animations.begin(); it != animations.end();) {
+      if ((*it)->getType() == AnimationType::SquareExpand) {
+        it = animations.erase(it);
+      } else {
+        ++it;
+      }
     }
   }
 };
