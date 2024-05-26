@@ -4,14 +4,19 @@
 #include "headers/database.h"
 #include "headers/gui.h"
 #include "headers/sound.h"
+#define RAYGUI_IMPLEMENTATION
+#include "headers/raygui.h"
 #include "map"
 #include "raylib.h"
+#define GUI_MENU_IMPLEMENTATION
+#include "headers/gui_menu.h"
 #include <bits/stdc++.h>
 #include <ios>
 #include <iostream>
 #include <string>
 #include <utility>
 using namespace std;
+
 
 string board[8][8];
 Color colorBoard[8][8];
@@ -74,7 +79,7 @@ public:
         int valx = pos.x + x;
         int valy = pos.y + dir * y;
         if (valx > -1 && valx < 8 && valy > -1 && valy < 8)
-          if (board[valy][valx][0] == enemy){
+          if (board[valy][valx][0] == enemy) {
             // selectedBoard[valy][valx] = RED;
             ExpandAnimation *anim = new ExpandAnimation(
                 {(float)valx, (float)valy}, 0.2, &selectedBoard, RED);
@@ -228,17 +233,17 @@ public:
     for (int i = 0; i < 8; i++) {
       Vector2 newP = {pos.x + delrow[i], pos.y + delcol[i]};
       if (inBounds(newP)) {
-        if (board[(int)newP.y][(int)newP.x] == ""){
+        if (board[(int)newP.y][(int)newP.x] == "") {
           // selectedBoard[(int)newP.y][(int)newP.x] = BLUE;
           ExpandAnimation *anim =
               new ExpandAnimation(newP, 0.2, &selectedBoard, BLUE);
-        AnimationManager::addAnimation(anim);
+          AnimationManager::addAnimation(anim);
         }
-        if (board[(int)newP.y][(int)newP.x][0] == enemy){
+        if (board[(int)newP.y][(int)newP.x][0] == enemy) {
           // selectedBoard[(int)newP.y][(int)newP.x] = RED;
           ExpandAnimation *anim =
               new ExpandAnimation(newP, 0.2, &selectedBoard, RED);
-        AnimationManager::addAnimation(anim);
+          AnimationManager::addAnimation(anim);
         }
       }
     }
@@ -252,16 +257,16 @@ public:
         int x = pos.x + dx[i];
         int y = pos.y + dx[j];
         if (x < 8 && y < 8 && x > -1 && y > -1) {
-          if (board[y][x][0] == enemy){
+          if (board[y][x][0] == enemy) {
             // selectedBoard[y][x] = RED;
-            ExpandAnimation *anim =
-                new ExpandAnimation({(float)x, (float)y}, 0.2, &selectedBoard, RED);
+            ExpandAnimation *anim = new ExpandAnimation(
+                {(float)x, (float)y}, 0.2, &selectedBoard, RED);
             AnimationManager::addAnimation(anim);
           }
-          if (board[y][x] == ""){
+          if (board[y][x] == "") {
             // selectedBoard[y][x] = BLUE;
-            ExpandAnimation *anim =
-                new ExpandAnimation({(float)x, (float)y}, 0.2, &selectedBoard, BLUE);
+            ExpandAnimation *anim = new ExpandAnimation(
+                {(float)x, (float)y}, 0.2, &selectedBoard, BLUE);
             AnimationManager::addAnimation(anim);
           }
         }
@@ -347,6 +352,7 @@ public:
     }
     castleB[0] = castleB[1] = false;
     castleW[0] = castleW[1] = false;
+    NewGame();
   }
   void ParseMoves(string moveSet) {
     // Break the string into pieces
@@ -616,47 +622,64 @@ unordered_multiset<Animation *> AnimationManager::animations;
 
 map<SoundType, Sound> SoundMap::soundMap;
 
+class Game {
+  Board b;
+  Label Time;
+  Label score;
+  string time = "00:00:00";
+  SmallButton Button;
+  GAME_STATE gameState = MENU;
+  GuiMenuState state = InitGuiMenu();
+public:
+  Game()
+      : Button(Vector2{0, 800}), score(Vector2{650, 800}, &score_str),
+        Time(Vector2{400 - 48 * 3 / 2, 800}, &time) {
+    SoundMap::Init();
+    // Make a function that updates the string time
+  }
+  void HANDLE_GAME_STATE() {
+
+    switch (gameState) {
+    case MENU:
+      // Draw the MENU
+      GuiMenu(&state, gameState);
+      break;
+    case ONE_SHOT:
+      // Draw for ONE_SHOT
+      time = UpdateTime((int)GetTime());
+      if (IsKeyPressed(KEY_RIGHT))
+        b.Cheat();
+      b.Draw();
+      Button.Update();
+      Time.Draw();
+      score.Draw();
+      Button.Draw();
+      // GuiMenu(&state);
+      // AnimationManager::Draw();
+
+      AnimationManager::Update();
+      b.HandleClick();
+      break;
+    case TIMED:
+      // Draw for TIMED
+      break;
+    case NO_LIMIT:
+      break;
+    }
+  }
+};
+
 int main() {
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess Grid");
   InitAudioDevice();
   SetTargetFPS(60);
-  Board b;
-  b.setBoard("r3r1k1/p4ppp/2p2n2/1p6/3P1qb1/2NQR3/PPB2PP1/R1B3K1 w - - 5 18");
-  b.ParseMoves("e3g3 e8e1 g1h2 e1c1 a1c1 f4h6 h2g1 h6c1");
-  b.PrintMoves();
-  b.EnemyMove();
-  SoundMap::Init();
-  string time = "00:00:00";
-  // Make a function that updates the string time
-  Label Time(Vector2{400 - 48 * 3 / 2, 800}, &time);
-  Label score(Vector2{650, 800}, &score_str);
-  SmallButton Button(Vector2{0, 800});
+  Game g;
+  // GuiLoadStyle("./assets/Ashes.rgs");
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
     BeginDrawing();
     ClearBackground(BLACK);
-    time = UpdateTime((int)GetTime());
-    if (IsKeyPressed(KEY_SPACE)) {
-      // cout << Filer::ReadRandomLineFromFile() << endl;
-      pair<string, string> Board_Moves = Filer::ParseLine();
-      cout << Board_Moves.first << endl;
-      cout << Board_Moves.second << endl;
-      b.setBoard(Board_Moves.first);
-      b.ParseMoves(Board_Moves.second);
-      cout << "THE MOVES -------------->" << endl;
-      b.PrintMoves();
-      b.EnemyMove();
-    }
-    if (IsKeyPressed(KEY_RIGHT))
-      b.Cheat();
-    b.Draw();
-    Button.Update();
-    Time.Draw();
-    score.Draw();
-    Button.Draw();
-    // AnimationManager::Draw();
-    AnimationManager::Update();
-    b.HandleClick();
+    g.HANDLE_GAME_STATE();
     EndDrawing();
   }
 
