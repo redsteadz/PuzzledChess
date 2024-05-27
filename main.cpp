@@ -17,7 +17,6 @@
 #include <utility>
 using namespace std;
 
-
 string board[8][8];
 Color colorBoard[8][8];
 vector<vector<Color>> selectedBoard(8, vector<Color>(8));
@@ -327,6 +326,7 @@ class Board {
   bool castleB[2];
   bool castleW[2];
 
+  GAME_STATE gameState = MENU;
 public:
   void Reset() {
     for (int i = 0; i < 8; i++)
@@ -341,6 +341,7 @@ public:
     timeStarted = GetTime();
     set = false;
   }
+  void setGameState(GAME_STATE state) { gameState = state; }
   Board() {
     Reset();
     // Load textures for each pieces
@@ -518,6 +519,16 @@ public:
     if (start.x == correctStart.x && start.y == correctStart.y &&
         pos.x == correctEnd.x && pos.y == correctEnd.y)
       return true;
+    // If one shot mode then the game has ended
+    if (gameState == ONE_SHOT) {
+      cout << "YOU LOST: " << score << endl;
+      NewGame();
+    // Reset SCORE 
+      score = 0;
+      score_str = to_string(score);
+      timeStarted = GetTime();
+      gameState = MENU;
+    }
     return false;
   }
   void PlayMove() {
@@ -572,6 +583,7 @@ public:
     cout << "THE MOVES -------------->" << endl;
     PrintMoves();
     EnemyMove();
+    timeStarted = GetTime();
   }
 
 private:
@@ -630,6 +642,7 @@ class Game {
   SmallButton Button;
   GAME_STATE gameState = MENU;
   GuiMenuState state = InitGuiMenu();
+
 public:
   Game()
       : Button(Vector2{0, 800}), score(Vector2{650, 800}, &score_str),
@@ -654,18 +667,30 @@ public:
       Time.Draw();
       score.Draw();
       Button.Draw();
-      // GuiMenu(&state);
-      // AnimationManager::Draw();
-
       AnimationManager::Update();
       b.HandleClick();
       break;
     case TIMED:
       // Draw for TIMED
+      // Timer for 5 minutes 
+      time = UpdateTime(1*60 - GetTime());
+      if (1*60 - GetTime() <= 0){
+          gameState = MENU;
+        }
+      if (IsKeyPressed(KEY_RIGHT))
+        b.Cheat();
+      b.Draw();
+      Button.Update();
+      Time.Draw();
+      score.Draw();
+      Button.Draw();
+      AnimationManager::Update();
+      b.HandleClick();
       break;
     case NO_LIMIT:
       break;
     }
+    b.setGameState(gameState);
   }
 };
 
