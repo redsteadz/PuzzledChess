@@ -22,6 +22,8 @@ Color colorBoard[8][8];
 vector<vector<Color>> selectedBoard(8, vector<Color>(8));
 int score = 0;
 string score_str = "0";
+int menu_time = 0;
+int max_score = 0;
 
 string UpdateTime(int time_f) {
   int hours = time_f / 3600;
@@ -554,7 +556,7 @@ public:
     }
   }
   void UpdateScore() {
-    double detalTime = GetTime() - timeStarted;
+    double detalTime = GetTime() - timeStarted - menu_time;
     if (detalTime >= 2 * 60)
       score += 100;
     else if (detalTime >= 60)
@@ -637,35 +639,38 @@ map<SoundType, Sound> SoundMap::soundMap;
 class Game {
   Board b;
   Label Time;
-  Label score;
+  Label ScoreLabel;
   string time = "00:00:00";
   SmallButton Button;
   GAME_STATE gameState = MENU;
   GuiMenuState state = InitGuiMenu();
-
+    Texture2D bg;
 public:
   Game()
-      : Button(Vector2{0, 800}), score(Vector2{650, 800}, &score_str),
+      : Button(Vector2{0, 800}), ScoreLabel(Vector2{650, 800}, &score_str),
         Time(Vector2{400 - 48 * 3 / 2, 800}, &time) {
+    bg = LoadTexture("./assets/background.png");
     SoundMap::Init();
     // Make a function that updates the string time
   }
   void HANDLE_GAME_STATE() {
-
+    string max_score_str = "Max Score: " + to_string(max_score);
     switch (gameState) {
     case MENU:
       // Draw the MENU
+      DrawTexture(bg, 0, 0, WHITE);
+      DrawText(max_score_str.c_str(), SCREEN_WIDTH/2 - MeasureText(max_score_str.c_str(), 20)/2, 100 + 10, 20, WHITE);
       GuiMenu(&state, gameState);
       break;
     case ONE_SHOT:
       // Draw for ONE_SHOT
-      time = UpdateTime((int)GetTime());
+      time = UpdateTime((GetTime() - menu_time));
       if (IsKeyPressed(KEY_RIGHT))
         b.Cheat();
       b.Draw();
       Button.Update();
       Time.Draw();
-      score.Draw();
+      ScoreLabel.Draw();
       Button.Draw();
       AnimationManager::Update();
       b.HandleClick();
@@ -673,8 +678,8 @@ public:
     case TIMED:
       // Draw for TIMED
       // Timer for 5 minutes 
-      time = UpdateTime(1*60 - GetTime());
-      if (1*60 - GetTime() <= 0){
+      time = UpdateTime(1*60 - (GetTime() - menu_time));
+      if (1*60 - (GetTime() - menu_time)<= 0){
           gameState = MENU;
         }
       if (IsKeyPressed(KEY_RIGHT))
@@ -682,15 +687,27 @@ public:
       b.Draw();
       Button.Update();
       Time.Draw();
-      score.Draw();
+      ScoreLabel.Draw();
       Button.Draw();
       AnimationManager::Update();
       b.HandleClick();
       break;
     case NO_LIMIT:
+      time = UpdateTime((GetTime() - menu_time));
+      if (IsKeyPressed(KEY_RIGHT))
+        b.Cheat();
+      b.Draw();
+      Button.Update();
+      Time.Draw();
+      ScoreLabel.Draw();
+      Button.Draw();
+      AnimationManager::Update();
+      b.HandleClick();
       break;
     }
     b.setGameState(gameState);
+    if (gameState == MENU) menu_time = GetTime();
+    max_score = max(max_score, score);
   }
 };
 
