@@ -329,6 +329,7 @@ class Board {
   bool castleW[2];
 
   GAME_STATE gameState = MENU;
+
 public:
   void Reset() {
     for (int i = 0; i < 8; i++)
@@ -525,7 +526,7 @@ public:
     if (gameState == ONE_SHOT) {
       cout << "YOU LOST: " << score << endl;
       NewGame();
-    // Reset SCORE 
+      // Reset SCORE
       score = 0;
       score_str = to_string(score);
       timeStarted = GetTime();
@@ -642,12 +643,25 @@ class Game {
   Label ScoreLabel;
   string time = "00:00:00";
   SmallButton Button;
+  BigButton OneShot;
+  BigButton Timed;
+  BigButton No_Limit;
   GAME_STATE gameState = MENU;
+  Texture2D GuiSheet = LoadTexture("./assets/GUI.png");
   GuiMenuState state = InitGuiMenu();
-    Texture2D bg;
+  Texture2D bg;
+
 public:
+  void setState(GAME_STATE state) { gameState = state; }
   Game()
-      : Button(Vector2{0, 800}), ScoreLabel(Vector2{650, 800}, &score_str),
+      : Button(Vector2{0, 800}, &GuiSheet),
+        OneShot({SCREEN_WIDTH / 2.0 - 48 * 3 / 2.0, 300}, "ONE SHOT", &GuiSheet,
+                ONE_SHOT, &gameState),
+        Timed({SCREEN_WIDTH / 2.0 - 48 * 3 / 2.0, 400}, "TIMED", &GuiSheet,
+               TIMED, &gameState),
+        No_Limit({SCREEN_WIDTH / 2.0 - 48 * 3 / 2.0, 500}, "NO LIMIT",
+                 &GuiSheet, NO_LIMIT, &gameState),
+        ScoreLabel(Vector2{650, 800}, &score_str),
         Time(Vector2{400 - 48 * 3 / 2, 800}, &time) {
     bg = LoadTexture("./assets/background.png");
     SoundMap::Init();
@@ -659,8 +673,16 @@ public:
     case MENU:
       // Draw the MENU
       DrawTexture(bg, 0, 0, WHITE);
-      DrawText(max_score_str.c_str(), SCREEN_WIDTH/2 - MeasureText(max_score_str.c_str(), 20)/2, 100 + 10, 20, WHITE);
-      GuiMenu(&state, gameState);
+      DrawText(max_score_str.c_str(),
+               SCREEN_WIDTH / 2 - MeasureText(max_score_str.c_str(), 20) / 2,
+               100 + 10, 20, WHITE);
+      // GuiMenu(&state, gameState);
+      OneShot.Draw();
+      OneShot.Update();
+      Timed.Draw();
+      Timed.Update();
+      No_Limit.Draw();
+      No_Limit.Update();
       break;
     case ONE_SHOT:
       // Draw for ONE_SHOT
@@ -677,11 +699,11 @@ public:
       break;
     case TIMED:
       // Draw for TIMED
-      // Timer for 5 minutes 
-      time = UpdateTime(1*60 - (GetTime() - menu_time));
-      if (1*60 - (GetTime() - menu_time)<= 0){
-          gameState = MENU;
-        }
+      // Timer for 5 minutes
+      time = UpdateTime(1 * 60 - (GetTime() - menu_time));
+      if (1 * 60 - (GetTime() - menu_time) <= 0) {
+        gameState = MENU;
+      }
       if (IsKeyPressed(KEY_RIGHT))
         b.Cheat();
       b.Draw();
@@ -706,7 +728,8 @@ public:
       break;
     }
     b.setGameState(gameState);
-    if (gameState == MENU) menu_time = GetTime();
+    if (gameState == MENU)
+      menu_time = GetTime();
     max_score = max(max_score, score);
   }
 };
