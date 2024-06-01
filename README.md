@@ -2,8 +2,14 @@
     <h1 align="center">CHARSICHESS</h1>
 </p>
 <p align="center">
-    <em><code>► INSERT-TEXT-HERE</code></em>
+    <em><code>► Another Chess board for Puzzle solving !</code></em>
+
 </p>
+
+
+![Video](https://github.com/redsteadz/CharsiChess/assets/86804632/eb0474ec-7673-4557-a7a0-c5895ccbb65b)
+
+
 <p align="center">
 	<img src="https://img.shields.io/github/license/redsteadz/CharsiChess?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
 	<img src="https://img.shields.io/github/last-commit/redsteadz/CharsiChess?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
@@ -37,13 +43,19 @@
 
 ## Overview
 
-<code>► INSERT-TEXT-HERE</code>
+<code>Welcome to the Chess Puzzle Master project! This innovative and visually appealing chess puzzle application was developed as a part of a second-semester project. The goal of Chess Puzzle Master is to offer chess enthusiasts a dynamic and engaging way to sharpen their chess skills by solving puzzles extracted directly from Lichess - one of the most popular chess platforms available today.
+</code>
+<code>Chess Puzzle Master stands out due to its sleek interface and the animated movements of the chess pieces, which add a delightful and interactive dimension to the puzzle-solving experience. Each piece animates smoothly across the board to its destination, and even the suggested position squares, hinting where a piece might best be moved, come alive with animation.</code>
 
 ---
 
 ## Features
-
-<code>► INSERT-TEXT-HERE</code>
+- Puzzle Source: All puzzles are dynamically loaded from Lichess, ensuring a vast and varied collection that is continually updated with new challenges.
+- Three Unique Modes:
+- One Shot: Test your precision and foresight by solving each puzzle in just a single attempt. Perfect for those who love a challenge and want to test their accuracy under pressure.
+- Timed: With a countdown of 5 minutes, see how many puzzles you can solve within the time limit. It’s a race against time that requires quick thinking and rapid decision-making.
+- No Limit: For those looking for a more relaxed experience, this mode allows you to take your time with each puzzle, making it perfect for learning and practice without any stress.
+- Animated Pieces and Suggested Positions: To enhance the user experience, all chess pieces and suggestion squares are fully animated, bringing the game to life and making your puzzle-solving journey even more enjoyable.
 
 ---
 
@@ -101,11 +113,11 @@
 
 | File                                                                                  | Summary                         |
 | ------------------------------------------------------------------------------------- | ------------------------------- |
-| [animate.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/animate.h)   | <code>► INSERT-TEXT-HERE</code> |
-| [constant.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/constant.h) | <code>► INSERT-TEXT-HERE</code> |
-| [database.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/database.h) | <code>► INSERT-TEXT-HERE</code> |
-| [gui.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/gui.h)           | <code>► INSERT-TEXT-HERE</code> |
-| [sound.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/sound.h)       | <code>► INSERT-TEXT-HERE</code> |
+| [animate.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/animate.h)   | <code> Features the animations played out in moving pieces, making squares and displaying some text </code> |
+| [constant.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/constant.h) | <code> Has all the global variables of the game </code> |
+| [database.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/database.h) | <code> Features the functions used to Access the hefty database of lichess </code> |
+| [gui.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/gui.h)           | <code> Makes some custom built UI interactables </code> |
+| [sound.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/sound.h)       | <code> Simply has the sounds in an easy to use map </code> |
 
 </details>
 
@@ -133,12 +145,22 @@
 > $ cd CharsiChess
 > ```
 >
-> 3. Install the dependencies:
+> 3. Make the build folder:
 >
 > ```console
-> $ gcc -o myapp main.c
+> $ mkdir build
+> $ cd build
 > ```
-
+> 4. Make the prerequisites for CMake:
+>
+> ```console
+> $ cmakke ..
+> ```
+> 4. Build:
+>
+> ```console
+> $ make
+> ```
 ### Usage
 
 <h4>From <code>source</code></h4>
@@ -146,7 +168,7 @@
 > Run CharsiChess using the command below:
 >
 > ```console
-> $ ./myapp
+> $ ./Chess
 > ```
 
 ### Tests
@@ -161,8 +183,9 @@
 
 ## Project Roadmap
 
-- [x] `► INSERT-TASK-1`
-- [ ] `► INSERT-TASK-2`
+- [x] `► Make a menu`
+- [ ] `► Finalize the conditions for chess and all it's variations in moves`
+- [ ] `► Hook it up to a Chess engine (Make a chess engine ? )`
 - [ ] `► ...`
 
 ---
