@@ -1,5 +1,5 @@
 <p align="center">
-    <h1 align="center">CHARSICHESS</h1>
+    <h1 align="center">Puzzled Chess</h1>
 </p>
 <p align="center">
     <em><code>► Another Chess board for Puzzle solving !</code></em>
@@ -255,7 +255,8 @@ details, refer to the [LICENSE](https://choosealicense.com/licenses/) file.
 ## Acknowledgments
 
 - List any resources, contributors, inspiration, etc. here.
-
+- [Lichess Puzzle Database](https://lichess.org/puzzle)
+- [Lichess Pieces Assets](https://lichess.org/)
 [**Return**](#-overview)
 
 ---
