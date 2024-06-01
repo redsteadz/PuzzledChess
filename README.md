@@ -6,7 +6,7 @@
 
 </p>
 
-
+![image](https://github.com/redsteadz/CharsiChess/assets/86804632/ad55a329-0626-449a-a0f9-cc1f3f9b2616)
 ![Video](https://github.com/redsteadz/CharsiChess/assets/86804632/eb0474ec-7673-4557-a7a0-c5895ccbb65b)
 
 
