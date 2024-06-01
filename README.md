@@ -6,15 +6,15 @@
 
 </p>
 
-![image](https://github.com/redsteadz/CharsiChess/assets/86804632/ad55a329-0626-449a-a0f9-cc1f3f9b2616)
-![Video](https://github.com/redsteadz/CharsiChess/assets/86804632/eb0474ec-7673-4557-a7a0-c5895ccbb65b)
+![image](https://github.com/redsteadz/PuzzledChess/assets/86804632/ad55a329-0626-449a-a0f9-cc1f3f9b2616)
+![Video](https://github.com/redsteadz/PuzzledChess/assets/86804632/eb0474ec-7673-4557-a7a0-c5895ccbb65b)
 
 
 <p align="center">
-	<img src="https://img.shields.io/github/license/redsteadz/CharsiChess?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
-	<img src="https://img.shields.io/github/last-commit/redsteadz/CharsiChess?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
-	<img src="https://img.shields.io/github/languages/top/redsteadz/CharsiChess?style=default&color=0080ff" alt="repo-top-language">
-	<img src="https://img.shields.io/github/languages/count/redsteadz/CharsiChess?style=default&color=0080ff" alt="repo-language-count">
+	<img src="https://img.shields.io/github/license/redsteadz/PuzzledChess?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
+	<img src="https://img.shields.io/github/last-commit/redsteadz/PuzzledChess?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
+	<img src="https://img.shields.io/github/languages/top/redsteadz/PuzzledChess?style=default&color=0080ff" alt="repo-top-language">
+	<img src="https://img.shields.io/github/languages/count/redsteadz/PuzzledChess?style=default&color=0080ff" alt="repo-language-count">
 <p>
 <p align="center">
 	<!-- default option, no dependency badges. -->
@@ -62,7 +62,7 @@
 ## Repository Structure
 
 ```sh
-└── CharsiChess/
+└── PuzzledChess/
     ├── CMakeLists.txt
     ├── assets
     │   ├── GUI.png
@@ -103,9 +103,9 @@
 
 | File                                                                                                | Summary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [CMakeLists.txt](https://github.com/redsteadz/CharsiChess/blob/master/CMakeLists.txt)               | Sets up the Chess project with CMake for building and debugging. Copies assets to the build directory. Uses Raylib for graphics. Declares the main.cpp file as the executable, linking with Raylib library.                                                                                                                                                                                                                                                                                                                                                                     |
-| [compile_commands.json](https://github.com/redsteadz/CharsiChess/blob/master/compile_commands.json) | Enables compilation details for Chess project files, aiding in the build process by specifying commands and output locations.                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| [main.cpp](https://github.com/redsteadz/CharsiChess/blob/master/main.cpp)                           | SummaryThis code file within the CharsiChess repository contributes to the graphical user interface (GUI) of the chess application. It efficiently manages the display of different chess piece images and handles user interactions with the game board. The critical features it provides include rendering the board, displaying various chess piece graphics based on game state, and enabling player moves through intuitive interface interactions. This code file plays a crucial role in ensuring a seamless and engaging user experience within the chess application. |
+| [CMakeLists.txt](https://github.com/redsteadz/PuzzledChess/blob/master/CMakeLists.txt)               | Sets up the Chess project with CMake for building and debugging. Copies assets to the build directory. Uses Raylib for graphics. Declares the main.cpp file as the executable, linking with Raylib library.                                                                                                                                                                                                                                                                                                                                                                     |
+| [compile_commands.json](https://github.com/redsteadz/PuzzledChess/blob/master/compile_commands.json) | Enables compilation details for Chess project files, aiding in the build process by specifying commands and output locations.                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| [main.cpp](https://github.com/redsteadz/PuzzledChess/blob/master/main.cpp)                           | SummaryThis code file within the PuzzledChess repository contributes to the graphical user interface (GUI) of the chess application. It efficiently manages the display of different chess piece images and handles user interactions with the game board. The critical features it provides include rendering the board, displaying various chess piece graphics based on game state, and enabling player moves through intuitive interface interactions. This code file plays a crucial role in ensuring a seamless and engaging user experience within the chess application. |
 
 </details>
 
@@ -113,11 +113,11 @@
 
 | File                                                                                  | Summary                         |
 | ------------------------------------------------------------------------------------- | ------------------------------- |
-| [animate.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/animate.h)   | <code> Features the animations played out in moving pieces, making squares and displaying some text </code> |
-| [constant.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/constant.h) | <code> Has all the global variables of the game </code> |
-| [database.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/database.h) | <code> Features the functions used to Access the hefty database of lichess </code> |
-| [gui.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/gui.h)           | <code> Makes some custom built UI interactables </code> |
-| [sound.h](https://github.com/redsteadz/CharsiChess/blob/master/headers/sound.h)       | <code> Simply has the sounds in an easy to use map </code> |
+| [animate.h](https://github.com/redsteadz/PuzzledChess/blob/master/headers/animate.h)   | <code> Features the animations played out in moving pieces, making squares and displaying some text </code> |
+| [constant.h](https://github.com/redsteadz/PuzzledChess/blob/master/headers/constant.h) | <code> Has all the global variables of the game </code> |
+| [database.h](https://github.com/redsteadz/PuzzledChess/blob/master/headers/database.h) | <code> Features the functions used to Access the hefty database of lichess </code> |
+| [gui.h](https://github.com/redsteadz/PuzzledChess/blob/master/headers/gui.h)           | <code> Makes some custom built UI interactables </code> |
+| [sound.h](https://github.com/redsteadz/PuzzledChess/blob/master/headers/sound.h)       | <code> Simply has the sounds in an easy to use map </code> |
 
 </details>
 
@@ -133,16 +133,16 @@
 
 <h4>From <code>source</code></h4>
 
-> 1. Clone the CharsiChess repository:
+> 1. Clone the PuzzledChess repository:
 >
 > ```console
-> $ git clone https://github.com/redsteadz/CharsiChess
+> $ git clone https://github.com/redsteadz/PuzzledChess
 > ```
 >
 > 2. Change to the project directory:
 >
 > ```console
-> $ cd CharsiChess
+> $ cd PuzzledChess
 > ```
 >
 > 3. Make the build folder:
@@ -165,7 +165,7 @@
 
 <h4>From <code>source</code></h4>
 
-> Run CharsiChess using the command below:
+> Run PuzzledChess using the command below:
 >
 > ```console
 > $ ./Chess
@@ -194,11 +194,11 @@
 
 Contributions are welcome! Here are several ways you can contribute:
 
-- **[Report Issues](https://github.com/redsteadz/CharsiChess/issues)**: Submit
-  bugs found or log feature requests for the `CharsiChess` project.
-- **[Submit Pull Requests](https://github.com/redsteadz/CharsiChess/blob/main/CONTRIBUTING.md)**:
+- **[Report Issues](https://github.com/redsteadz/PuzzledChess/issues)**: Submit
+  bugs found or log feature requests for the `PuzzledChess` project.
+- **[Submit Pull Requests](https://github.com/redsteadz/PuzzledChess/blob/main/CONTRIBUTING.md)**:
   Review open PRs, and submit your own PRs.
-- **[Join the Discussions](https://github.com/redsteadz/CharsiChess/discussions)**:
+- **[Join the Discussions](https://github.com/redsteadz/PuzzledChess/discussions)**:
   Share your insights, provide feedback, or ask questions.
 
 <details closed>
@@ -209,7 +209,7 @@ Contributions are welcome! Here are several ways you can contribute:
 2. **Clone Locally**: Clone the forked repository to your local machine using a
    git client.
    ```sh
-   git clone https://github.com/redsteadz/CharsiChess
+   git clone https://github.com/redsteadz/PuzzledChess
    ```
 3. **Create a New Branch**: Always work on a new branch, giving it a descriptive
    name.
@@ -236,8 +236,8 @@ Contributions are welcome! Here are several ways you can contribute:
 <summary>Contributor Graph</summary>
 <br>
 <p align="center">
-   <a href="https://github.com{/redsteadz/CharsiChess/}graphs/contributors">
-      <img src="https://contrib.rocks/image?repo=redsteadz/CharsiChess">
+   <a href="https://github.com{/redsteadz/PuzzledChess/}graphs/contributors">
+      <img src="https://contrib.rocks/image?repo=redsteadz/PuzzledChess">
    </a>
 </p>
 </details>
