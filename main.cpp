@@ -92,12 +92,15 @@ public:
 
   static void Bishop(string name, Vector2 pos) {
     char enemy = name[0] == 'w' ? 'b' : 'w';
-
+    char friendly = name[0] == 'w' ? 'w' : 'b';
     // Highlight all the diagonals if in bounds
     // Top Right
     for (int i = 1; i < 8; i++) {
       Vector2 newPos = {pos.x + i, pos.y - i};
       if (inBounds(Vector2{pos.x + i, pos.y - i})) {
+        // If it is a piece of the same color break
+        if (board[(int)newPos.y][(int)newPos.x][0] == friendly)
+          break;
         Color color =
             board[(int)pos.y - i][(int)pos.x + i][0] == enemy ? RED : BLUE;
         ExpandAnimation *anim =
@@ -111,6 +114,9 @@ public:
     for (int i = 1; i < 8; i++) {
       Vector2 newPos = {pos.x - i, pos.y - i};
       if (inBounds(Vector2{pos.x - i, pos.y - i})) {
+        if (board[(int)newPos.y][(int)newPos.x][0] == friendly)
+          break;
+
         Color color =
             board[(int)pos.y - i][(int)pos.x - i][0] == enemy ? RED : BLUE;
         ExpandAnimation *anim =
@@ -124,6 +130,9 @@ public:
     for (int i = 1; i < 8; i++) {
       Vector2 newPos = {pos.x + i, pos.y + i};
       if (inBounds(newPos)) {
+        if (board[(int)newPos.y][(int)newPos.x][0] == friendly)
+          break;
+
         Color color =
             board[(int)newPos.y][(int)newPos.x][0] == enemy ? RED : BLUE;
         // selectedBoard[(int)newPos.y][(int)newPos.x] = color;
@@ -138,6 +147,9 @@ public:
     for (int i = 1; i < 8; i++) {
       Vector2 newPos = {pos.x - i, pos.y + i};
       if (inBounds(Vector2{pos.x - i, pos.y + i})) {
+        if (board[(int)newPos.y][(int)newPos.x][0] == friendly)
+          break;
+
         Color color =
             board[(int)pos.y + i][(int)pos.x - i][0] == enemy ? RED : BLUE;
         ExpandAnimation *anim =
@@ -658,7 +670,7 @@ public:
         OneShot({SCREEN_WIDTH / 2.0 - 48 * 3 / 2.0, 300}, "ONE SHOT", &GuiSheet,
                 ONE_SHOT, &gameState),
         Timed({SCREEN_WIDTH / 2.0 - 48 * 3 / 2.0, 400}, "TIMED", &GuiSheet,
-               TIMED, &gameState),
+              TIMED, &gameState),
         No_Limit({SCREEN_WIDTH / 2.0 - 48 * 3 / 2.0, 500}, "NO LIMIT",
                  &GuiSheet, NO_LIMIT, &gameState),
         ScoreLabel(Vector2{650, 800}, &score_str),
