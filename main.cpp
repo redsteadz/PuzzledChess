@@ -25,14 +25,17 @@ string score_str = "0";
 int menu_time = 0;
 int max_score = 0;
 
+// Need to add empassant, Castling, Check, checkmate, oawn promotion
+
+
 string UpdateTime(int time_f) {
   int hours = time_f / 3600;
   int minutes = (time_f % 3600) / 60;
   int seconds = time_f % 60;
 
-  std::ostringstream oss;
-  oss << std::setfill('0') << std::setw(2) << hours << ":" << std::setfill('0')
-      << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2)
+  ostringstream oss;
+  oss << setfill('0') << setw(2) << hours << ":" << setfill('0')
+      << setw(2) << minutes << ":" << setfill('0') << setw(2)
       << seconds;
 
   return oss.str();
