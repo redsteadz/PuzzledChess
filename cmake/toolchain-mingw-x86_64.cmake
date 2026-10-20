@@ -22,9 +22,16 @@ find_program(CMAKE_RC_COMPILER  NAMES ${MINGW_TRIPLET}-windres     ${MINGW_TRIPL
 
 set(CMAKE_FIND_ROOT_PATH /usr/${MINGW_TRIPLET})
 
-# Look for programs on the host, but only ever find libraries/headers/packages
-# inside the cross sysroot, otherwise CMake would pick up host .so files.
+# Programs always come from the host; libraries, headers and packages may also
+# come from host paths so that a raylib built with *this* toolchain into a plain
+# -DCMAKE_PREFIX_PATH directory is found. The strict ONLY modes would hide it.
+# Pass -DRAYLIB_INCLUDE_DIR / -DRAYLIB_LIBRARY to be fully explicit.
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
+
+# pkg-config resolves .pc files against the host, so it must never be consulted
+# for a cross build. CMakeLists.txt honours this by skipping pkg-config whenever
+# CMAKE_CROSSCOMPILING is set.
+set(ENV{PKG_CONFIG} "")

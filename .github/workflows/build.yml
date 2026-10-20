@@ -50,7 +50,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential cmake ninja-build git \
-            libgl1-mesa-dev libx11-dev \
+            libgl1-mesa-dev \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev \
+            libxi-dev libxxf86vm-dev libxext-dev \
             libasound2-dev libwayland-dev libxkbcommon-dev \
             xvfb
 
@@ -87,16 +89,27 @@ jobs:
           cmake --install build-raylib
 
       - name: Configure game
+        env:
+          ID: ${{ matrix.id }}
         run: |
-          if [ "${{ matrix.id }}" = "windows" ]; then
-            extra="-DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchain-mingw-x86_64.cmake -DPUZZLEDCHESS_STATIC_RUNTIME=ON"
+          # Hand CMake the exact raylib we just built. Auto-discovery is not
+          # reliable here: raylib's raylib-config.cmake is really a find-module
+          # in disguise, and pkg-config resolves .pc files against the host
+          # rather than the cross sysroot.
+          common=(
+            -GNinja
+            -DCMAKE_BUILD_TYPE=Release
+            -DRAYLIB_INCLUDE_DIR="$PWD/raylib-install/include"
+            -DRAYLIB_LIBRARY="$PWD/raylib-install/lib/libraylib.a"
+          )
+
+          if [ "$ID" = "windows" ]; then
+            cmake -S . -B build "${common[@]}" \
+              -DCMAKE_TOOLCHAIN_FILE="$PWD/cmake/toolchain-mingw-x86_64.cmake" \
+              -DPUZZLEDCHESS_STATIC_RUNTIME=ON
           else
-            extra=""
+            cmake -S . -B build "${common[@]}"
           fi
-          cmake -S . -B build -GNinja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$PWD/raylib-install" \
-            $extra
 
       - name: Build game
         run: cmake --build build

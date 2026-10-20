@@ -28,21 +28,32 @@ option(PUZZLEDCHESS_WERROR "Treat compiler warnings as errors" OFF)
 # binary is placed in <build>/bin and the assets are staged next to it.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-# ---------------------------------------------------------------------------
 # raylib discovery
 #
-# Tried in order:
-#   1. find_package(raylib CONFIG)  - raylib >= 5 installed via CMake
-#   2. pkg-config                   - distro packages / Homebrew
-#   3. manual header + library lookup
-#   4. -DPUZZLEDCHESS_USE_BUNDLED_RAYLIB=ON to compile a pinned copy
+# Order of preference:
+#   1. -DRAYLIB_INCLUDE_DIR=... -DRAYLIB_LIBRARY=...   explicit and most reliable
+#   2. -DPUZZLEDCHESS_USE_BUNDLED_RAYLIB=ON                   compile a pinned copy
+#   3. find_package(raylib CONFIG)                      raylib 5+ CMake install
+#   4. pkg-config                                       distro packages, Homebrew
+#   5. find_path + find_library                         manual fallback
+#
+# pkg-config is deliberately skipped while cross-compiling: it resolves .pc
+# files against the build host and happily hands the linker a bare "-lraylib"
+# with no matching -L, which fails at link time with a confusing error.
 # ---------------------------------------------------------------------------
 
-set(PUZZLEDCHESS_USE_BUNDLED_RAYLIB OFF CACHE BOOL
-    "Build the bundled raylib sources instead of using an installed raylib")
-set(RAYLIB_GIT_TAG "5.5" CACHE STRING "raylib tag used when building from source")
+set(RAYLIB_INCLUDE_DIR "" CACHE PATH "Explicit path to raylib.h")
+set(RAYLIB_LIBRARY    "" CACHE FILEPATH "Explicit path to the raylib library")
 
-if(PUZZLEDCHESS_USE_BUNDLED_RAYLIB)
+if(RAYLIB_INCLUDE_DIR AND RAYLIB_LIBRARY AND EXISTS "${RAYLIB_LIBRARY}")
+    message(STATUS "raylib: using explicit paths")
+    message(STATUS "  include: ${RAYLIB_INCLUDE_DIR}")
+    message(STATUS "  library: ${RAYLIB_LIBRARY}")
+    add_library(pacman_raylib INTERFACE)
+    target_include_directories(pacman_raylib SYSTEM INTERFACE "${RAYLIB_INCLUDE_DIR}")
+    target_link_libraries(pacman_raylib INTERFACE "${RAYLIB_LIBRARY}")
+    set(PUZZLEDCHESS_RAYLIB_TARGET pacman_raylib)
+elseif(PUZZLEDCHESS_USE_BUNDLED_RAYLIB)
     include(FetchContent)
     FetchContent_Declare(raylib
         GIT_REPOSITORY https://github.com/raysan5/raylib.git
@@ -50,48 +61,57 @@ if(PUZZLEDCHESS_USE_BUNDLED_RAYLIB)
         GIT_SHALLOW    TRUE)
     set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(raylib)
-    add_library(puzzledchess_raylib INTERFACE)
-    target_link_libraries(puzzledchess_raylib INTERFACE raylib)
-    set(PUZZLEDCHESS_RAYLIB_TARGET puzzledchess_raylib)
+    add_library(pacman_raylib INTERFACE)
+    target_link_libraries(pacman_raylib INTERFACE raylib)
+    set(PUZZLEDCHESS_RAYLIB_TARGET pacman_raylib)
 else()
     find_package(raylib 5.0 QUIET CONFIG)
-    if(raylib_FOUND OR TARGET raylib)
+    if(TARGET raylib)
         message(STATUS "raylib: using CMake package config")
         set(PUZZLEDCHESS_RAYLIB_TARGET raylib)
     else()
-        find_package(PkgConfig QUIET)
-        if(PkgConfig_FOUND)
-            pkg_check_modules(RAYLIB_PC QUIET IMPORTED_TARGET raylib)
+        set(_raylib_found FALSE)
+        if(NOT CMAKE_CROSSCOMPILING)
+            find_package(PkgConfig QUIET)
+            if(PkgConfig_FOUND)
+                pkg_check_modules(RAYLIB_PC QUIET IMPORTED_TARGET raylib)
+            endif()
+            if(TARGET PkgConfig::RAYLIB_PC)
+                message(STATUS "raylib: using pkg-config (${RAYLIB_PC_VERSION})")
+                set(PUZZLEDCHESS_RAYLIB_TARGET PkgConfig::RAYLIB_PC)
+                set(_raylib_found TRUE)
+            endif()
         endif()
-        if(TARGET PkgConfig::RAYLIB_PC)
-            message(STATUS "raylib: using pkg-config (${RAYLIB_PC_VERSION})")
-            set(PUZZLEDCHESS_RAYLIB_TARGET PkgConfig::RAYLIB_PC)
-        else()
-            find_path(RAYLIB_INCLUDE_DIR
+        if(NOT _raylib_found)
+            find_path(RAYLIB_INCLUDE_DIR_FOUND
                 NAMES raylib.h
                 HINTS ENV RAYLIB_INSTALL_PATH
                 PATH_SUFFIXES include)
-            find_library(RAYLIB_LIBRARY
+            find_library(RAYLIB_LIBRARY_FOUND
                 NAMES raylib libraylib
                 HINTS ENV RAYLIB_INSTALL_PATH
                 PATH_SUFFIXES lib lib64)
-            if(NOT RAYLIB_INCLUDE_DIR OR NOT RAYLIB_LIBRARY)
+            if(RAYLIB_INCLUDE_DIR_FOUND AND RAYLIB_LIBRARY_FOUND)
+                message(STATUS "raylib: ${RAYLIB_LIBRARY_FOUND}")
+                add_library(pacman_raylib INTERFACE)
+                target_include_directories(pacman_raylib SYSTEM INTERFACE "${RAYLIB_INCLUDE_DIR_FOUND}")
+                target_link_libraries(pacman_raylib INTERFACE "${RAYLIB_LIBRARY_FOUND}")
+                set(PUZZLEDCHESS_RAYLIB_TARGET pacman_raylib)
+            else()
                 message(FATAL_ERROR
-                    "raylib was not found.\n"
-                    "Install it (Arch: 'pacman -S raylib', Debian/Ubuntu: 'apt install libraylib-dev',\n"
-                    "macOS: 'brew install raylib', Windows: 'vcpkg install raylib'), or configure with\n"
-                    "  -DPUZZLEDCHESS_USE_BUNDLED_RAYLIB=ON\n"
-                    "to compile raylib ${RAYLIB_GIT_TAG} from source automatically.")
+                    "raylib was not found.\n\n"
+                    "Install it:\n"
+                    "  Arch / CachyOS : sudo pacman -S raylib\n"
+                    "  Debian / Ubuntu : sudo apt install libraylib-dev\n"
+                    "  macOS          : brew install raylib\n\n"
+                    "Or point CMake straight at an existing install:\n"
+                    "  -DRAYLIB_INCLUDE_DIR=/path/to/include -DRAYLIB_LIBRARY=/path/to/libraylib.a\n\n"
+                    "Or let CMake build a pinned copy for you:\n"
+                    "  -DPUZZLEDCHESS_USE_BUNDLED_RAYLIB=ON")
             endif()
-            message(STATUS "raylib: ${RAYLIB_LIBRARY}")
-            add_library(puzzledchess_raylib INTERFACE)
-            target_include_directories(puzzledchess_raylib INTERFACE ${RAYLIB_INCLUDE_DIR})
-            target_link_libraries(puzzledchess_raylib INTERFACE ${RAYLIB_LIBRARY})
-            set(PUZZLEDCHESS_RAYLIB_TARGET puzzledchess_raylib)
         endif()
     endif()
 endif()
-
 # ---------------------------------------------------------------------------
 # Game
 # ---------------------------------------------------------------------------
