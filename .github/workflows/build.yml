@@ -130,18 +130,18 @@ jobs:
         run: |
           # raylib is statically linked, so the published binary must not need
           # libraylib.so present on the player's machine.
-          if ldd dist/bin/PuzzledChess | grep -i raylib; then
+          if ldd dist/PuzzledChess | grep -i raylib; then
             echo "error: binary still links raylib dynamically" >&2
             exit 1
           fi
-          ldd dist/bin/PuzzledChess
+          ldd dist/PuzzledChess
 
       - name: Verify Windows executable
         if: matrix.id == 'windows'
         run: |
-          test -f dist/bin/PuzzledChess.exe
-          file dist/bin/PuzzledChess.exe
-          if x86_64-w64-mingw32-objdump -p dist/bin/PuzzledChess.exe | grep -q 'DLL Name'; then
+          test -f dist/PuzzledChess.exe
+          file dist/PuzzledChess.exe
+          if x86_64-w64-mingw32-objdump -p dist/PuzzledChess.exe | grep -q 'DLL Name'; then
             echo "::warning::binary still imports DLLs; the static runtime option did not apply"
           else
             echo "No DLL imports - the executable is self-contained."
@@ -150,15 +150,16 @@ jobs:
       - name: Smoke test (offscreen)
         if: matrix.id == 'linux'
         run: |
-          # Runs the real binary long enough to open the window, load every
-          # asset and deal a puzzle from the bundled database. The runner has no
-          # sound card, so ALSA/PulseAudio chatter and raylib's "Failed to
-          # create buffer" warnings are expected here and must not be treated as
-          # failures - only genuine asset or puzzle load failures should break
-          # the build.
+          # Run the *packaged* bundle the way a player will: from inside the
+          # staged directory, with the repository root NOT as the working
+          # directory. Running from the repo root would silently satisfy the
+          # "./assets" lookups from the source tree and hide a broken layout.
+          # The runner has no sound card, so ALSA/PulseAudio chatter and
+          # raylib's "Failed to create buffer" warnings are expected and must
+          # not be treated as failures.
           set +e
-          xvfb-run -a --server-args="-screen 0 1280x1024x24" \
-            timeout 10 ./dist/bin/PuzzledChess > smoke.log 2>&1
+          ( cd dist && xvfb-run -a --server-args="-screen 0 1280x1024x24" \
+              timeout 10 ./PuzzledChess ) > smoke.log 2>&1
           status=$?
           set -e
           cat smoke.log
@@ -168,23 +169,29 @@ jobs:
             exit 1
           fi
           if grep -qE "Failed to load (texture|image|sound|music)|FILEIO: Failed to open|no usable puzzle|Could not load the puzzle database" smoke.log; then
-            echo "::error::the game could not load an asset or a puzzle"
+            echo "::error::the game could not load an asset or a puzzle from the packaged bundle"
             grep -E "Failed to load|FILEIO: Failed to open|usable puzzle|puzzle database" smoke.log
             exit 1
           fi
-          echo "All assets loaded and a puzzle was dealt."
+          loaded=$(grep -c "File loaded successfully" smoke.log || true)
+          moves=$(grep -c "THE MOVES" smoke.log || true)
+          echo "Packaged bundle loaded $loaded files and dealt $moves puzzle(s)."
 
       - name: Package
         env:
-          ARCHIVE: ${{ matrix.archive }}
+          ID: ${{ matrix.id }}
         run: |
-          cd dist
-          if [ "$ARCHIVE" = "zip" ]; then
-            zip -qr "../PuzzledChess-${{ matrix.id }}-x86_64.zip" .
+          # Put everything inside a single top-level directory so extracting the
+          # archive does not spray files across the current folder.
+          stage="PuzzledChess-$ID-x86_64"
+          mkdir -p "$stage"
+          cp -a dist/. "$stage"/
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            ( cd "$stage" && zip -qr "../$stage.zip" . )
           else
-            tar -czf "../PuzzledChess-${{ matrix.id }}-x86_64.tar.gz" .
+            tar -czf "$stage.tar.gz" "$stage"
           fi
-          cd ..
+          rm -rf "$stage"
           ls -lh PuzzledChess-*
 
       - name: Upload artifact

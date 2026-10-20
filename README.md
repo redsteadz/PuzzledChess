@@ -38,8 +38,13 @@ every archive, so the game is playable the moment you open it.
 ```bash
 # Linux
 tar -xzf PuzzledChess-linux-x86_64.tar.gz
-./bin/PuzzledChess
+cd PuzzledChess-linux-x86_64
+./PuzzledChess
 ```
+
+On Windows, unzip `PuzzledChess-windows-x86_64.zip` and double-click
+`PuzzledChess.exe`. Both bundles unpack into a single folder with the game and
+`assets/` side by side — run it from that folder and keep the two together.
 
 raylib is statically linked into both builds, so nothing needs installing
 alongside them. Every push to `main` is compiled for both platforms, and every

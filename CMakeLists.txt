@@ -172,11 +172,19 @@ add_custom_command(TARGET PuzzledChess POST_BUILD
 #
 #   cmake --install build --prefix dist
 #
-# produces a self contained folder: dist/bin/PuzzledChess + dist/assets/...
+# produces a self contained folder:
+#
+#   dist/PuzzledChess(.exe)
+#   dist/assets/...
+#
+# The executable deliberately sits at the archive root rather than in a bin/
+# subfolder: the game loads "./assets/..." relative to its working directory, so
+# keeping the two as siblings is what makes the bundle runnable straight after
+# unzipping with no arguments.
 # ---------------------------------------------------------------------------
 
 install(TARGETS PuzzledChess
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION .
     BUNDLE  DESTINATION .)
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/assets/"
