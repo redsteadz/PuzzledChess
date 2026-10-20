@@ -61,7 +61,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build g++-mingw-w64-x86-64 zip
+            cmake ninja-build g++-mingw-w64-x86-64 zip unzip
 
       # Static raylib keeps the published bundles self-contained: players do not
       # need a system raylib install, and the Windows .exe carries no DLL imports.
@@ -196,16 +196,26 @@ jobs:
           ID: ${{ matrix.id }}
         run: |
           # Put everything inside a single top-level directory so extracting the
-          # archive does not spray files across the current folder.
+          # archive does not spray files across the current folder. Both archive
+          # formats are written from the workspace root so they agree on that.
           stage="PuzzledChess-$ID-x86_64"
           mkdir -p "$stage"
           cp -a dist/. "$stage"/
           if [ "${{ matrix.archive }}" = "zip" ]; then
-            ( cd "$stage" && zip -qr "../$stage.zip" . )
+            zip -qr "$stage.zip" "$stage"
           else
             tar -czf "$stage.tar.gz" "$stage"
           fi
           rm -rf "$stage"
+
+          # Verify the archive really is wrapped in the top-level directory.
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            unzip -Z1 "$stage.zip" | grep -q "^$stage/PuzzledChess.exe$" \
+              || { echo "::error::$stage.zip is not wrapped in a top-level directory"; exit 1; }
+          else
+            tar -tzf "$stage.tar.gz" | grep -q "^$stage/PuzzledChess$" \
+              || { echo "::error::$stage.tar.gz is not wrapped in a top-level directory"; exit 1; }
+          fi
           ls -lh PuzzledChess-*
 
       - name: Upload artifact
