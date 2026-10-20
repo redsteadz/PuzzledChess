@@ -151,8 +151,11 @@ jobs:
         if: matrix.id == 'linux'
         run: |
           # Runs the real binary long enough to open the window, load every
-          # asset and deal a puzzle from the bundled database. A missing file or
-          # an unparsable puzzle shows up in the log.
+          # asset and deal a puzzle from the bundled database. The runner has no
+          # sound card, so ALSA/PulseAudio chatter and raylib's "Failed to
+          # create buffer" warnings are expected here and must not be treated as
+          # failures - only genuine asset or puzzle load failures should break
+          # the build.
           set +e
           xvfb-run -a --server-args="-screen 0 1280x1024x24" \
             timeout 10 ./dist/bin/PuzzledChess > smoke.log 2>&1
@@ -161,13 +164,15 @@ jobs:
           cat smoke.log
           # 124 means the timeout fired while the game was still running: success.
           if [ "$status" -ne 124 ] && [ "$status" -ne 0 ]; then
-            echo "error: smoke test exited with status $status" >&2
+            echo "::error::smoke test exited with status $status"
             exit 1
           fi
-          if grep -iqE "failed to load|error:|no usable puzzle" smoke.log; then
-            echo "error: the game reported asset or puzzle errors" >&2
+          if grep -qE "Failed to load (texture|image|sound|music)|FILEIO: Failed to open|no usable puzzle|Could not load the puzzle database" smoke.log; then
+            echo "::error::the game could not load an asset or a puzzle"
+            grep -E "Failed to load|FILEIO: Failed to open|usable puzzle|puzzle database" smoke.log
             exit 1
           fi
+          echo "All assets loaded and a puzzle was dealt."
 
       - name: Package
         env:

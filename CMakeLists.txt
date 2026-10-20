@@ -42,6 +42,16 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 # with no matching -L, which fails at link time with a confusing error.
 # ---------------------------------------------------------------------------
 
+# When raylib is consumed as a bare library file rather than as a CMake target,
+# its usage requirements do not come along for the ride. raylib's own build
+# lists ${OPENGL_LIBRARIES} and winmm on Windows for exactly this reason:
+# rcore calls timeBeginPeriod()/timeEndPeriod() from the WinMM API.
+function(puzzledchess_add_raylib_system_libs target)
+    if(WIN32)
+        target_link_libraries(${target} INTERFACE opengl32 winmm)
+    endif()
+endfunction()
+
 set(RAYLIB_INCLUDE_DIR "" CACHE PATH "Explicit path to raylib.h")
 set(RAYLIB_LIBRARY    "" CACHE FILEPATH "Explicit path to the raylib library")
 
@@ -49,10 +59,11 @@ if(RAYLIB_INCLUDE_DIR AND RAYLIB_LIBRARY AND EXISTS "${RAYLIB_LIBRARY}")
     message(STATUS "raylib: using explicit paths")
     message(STATUS "  include: ${RAYLIB_INCLUDE_DIR}")
     message(STATUS "  library: ${RAYLIB_LIBRARY}")
-    add_library(pacman_raylib INTERFACE)
-    target_include_directories(pacman_raylib SYSTEM INTERFACE "${RAYLIB_INCLUDE_DIR}")
-    target_link_libraries(pacman_raylib INTERFACE "${RAYLIB_LIBRARY}")
-    set(PUZZLEDCHESS_RAYLIB_TARGET pacman_raylib)
+    add_library(puzzledchess_raylib INTERFACE)
+    target_include_directories(puzzledchess_raylib SYSTEM INTERFACE "${RAYLIB_INCLUDE_DIR}")
+    target_link_libraries(puzzledchess_raylib INTERFACE "${RAYLIB_LIBRARY}")
+    puzzledchess_add_raylib_system_libs(puzzledchess_raylib)
+    set(PUZZLEDCHESS_RAYLIB_TARGET puzzledchess_raylib)
 elseif(PUZZLEDCHESS_USE_BUNDLED_RAYLIB)
     include(FetchContent)
     FetchContent_Declare(raylib
@@ -61,9 +72,9 @@ elseif(PUZZLEDCHESS_USE_BUNDLED_RAYLIB)
         GIT_SHALLOW    TRUE)
     set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(raylib)
-    add_library(pacman_raylib INTERFACE)
-    target_link_libraries(pacman_raylib INTERFACE raylib)
-    set(PUZZLEDCHESS_RAYLIB_TARGET pacman_raylib)
+    add_library(puzzledchess_raylib INTERFACE)
+    target_link_libraries(puzzledchess_raylib INTERFACE raylib)
+    set(PUZZLEDCHESS_RAYLIB_TARGET puzzledchess_raylib)
 else()
     find_package(raylib 5.0 QUIET CONFIG)
     if(TARGET raylib)
@@ -93,10 +104,11 @@ else()
                 PATH_SUFFIXES lib lib64)
             if(RAYLIB_INCLUDE_DIR_FOUND AND RAYLIB_LIBRARY_FOUND)
                 message(STATUS "raylib: ${RAYLIB_LIBRARY_FOUND}")
-                add_library(pacman_raylib INTERFACE)
-                target_include_directories(pacman_raylib SYSTEM INTERFACE "${RAYLIB_INCLUDE_DIR_FOUND}")
-                target_link_libraries(pacman_raylib INTERFACE "${RAYLIB_LIBRARY_FOUND}")
-                set(PUZZLEDCHESS_RAYLIB_TARGET pacman_raylib)
+                add_library(puzzledchess_raylib INTERFACE)
+                target_include_directories(puzzledchess_raylib SYSTEM INTERFACE "${RAYLIB_INCLUDE_DIR_FOUND}")
+                target_link_libraries(puzzledchess_raylib INTERFACE "${RAYLIB_LIBRARY_FOUND}")
+                puzzledchess_add_raylib_system_libs(puzzledchess_raylib)
+                set(PUZZLEDCHESS_RAYLIB_TARGET puzzledchess_raylib)
             else()
                 message(FATAL_ERROR
                     "raylib was not found.\n\n"
