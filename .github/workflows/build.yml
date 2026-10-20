@@ -5,7 +5,11 @@ name: Build
 # both platforms and both artifacts come out of the same job definition.
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      # Keep the event build honest too: it is the code that will actually run
+      # on the day, so it needs the same Linux and Windows checks.
+      - event-arcade-mode
     tags: ["v*"]
   pull_request:
     branches: [main]
