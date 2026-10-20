@@ -146,6 +146,20 @@ jobs:
           else
             echo "No DLL imports - the executable is self-contained."
           fi
+          # The build is fully static, so the bundle should be just the .exe and
+          # its assets. Anything else is either a stray file or a runtime DLL
+          # that would no longer be used.
+          strays=$(find dist -maxdepth 1 -mindepth 1 ! -name PuzzledChess.exe ! -name assets)
+          if [ -n "$strays" ]; then
+            echo "::error::unexpected files at the root of the bundle:"
+            echo "$strays"
+            exit 1
+          fi
+          if find dist -iname '*.dll' | grep -q .; then
+            echo "::error::runtime DLLs were bundled even though the build is static:"
+            find dist -iname '*.dll'
+            exit 1
+          fi
 
       - name: Smoke test (offscreen)
         if: matrix.id == 'linux'
