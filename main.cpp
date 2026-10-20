@@ -3,6 +3,7 @@
 #include "headers/console.h"
 #include "headers/constant.h"
 #include "headers/database.h"
+#include "headers/event.h"
 #include "headers/gui.h"
 #include "headers/sound.h"
 #include "map"
@@ -42,6 +43,20 @@ int score = 0;
 string score_str = "0";
 int menu_time = 0;
 int max_score = 0;
+
+// Event mode bookkeeping: how many puzzles the current round has solved, and
+// a short-lived banner so a click that does nothing still feels like it was
+// registered.
+int puzzles_solved = 0;
+string feedback_text = "";
+double feedback_until = 0.0;
+
+static void Say(const char *text, double seconds = 1.4) {
+  feedback_text = text;
+  feedback_until = GetTime() + seconds;
+}
+
+static bool FeedbackActive() { return GetTime() < feedback_until; }
 
 // Need to add empassant, Castling, Check, checkmate, oawn promotion
 
@@ -484,6 +499,14 @@ public:
                                    (float)y * SQUARE_SIZE, SQUARE_SIZE,
                                    SQUARE_SIZE},
                          Vector2{0, 0}, 0, WHITE);
+          // Tint the pieces the player is allowed to move. Which colour that
+          // is depends on the position, and picking one up by trial and error
+          // is the fastest way to lose a stranger's interest.
+          if (board[y][x][0] == playerColor) {
+            DrawRectangle(x * SQUARE_SIZE + gap, y * SQUARE_SIZE + gap,
+                          SQUARE_SIZE - gap * 2, SQUARE_SIZE - gap * 2,
+                          event::RGB(90, 170, 255, 90));
+          }
         }
       }
     }
@@ -555,6 +578,8 @@ public:
     if (start.x == correctStart.x && start.y == correctStart.y &&
         pos.x == correctEnd.x && pos.y == correctEnd.y)
       return true;
+    // Say so. Without this a rejected move looks exactly like a broken mouse.
+    Say("NOT THE MOVE WE WANTED");
     // If one shot mode then the game has ended
     if (gameState == ONE_SHOT) {
       cout << "YOU LOST: " << score << endl;
@@ -606,6 +631,8 @@ public:
     // Make an animation for the score
     score_str = to_string(score);
     PlaySound(SoundMap::soundMap[SCORE]);
+    puzzles_solved++;
+    Say("SOLVED!", 1.2);
     TextAnim *scoreAnim =
         new TextAnim(score_str, Vector2{650, 800}, Vector2{650, 700});
     AnimationManager::addAnimation(scoreAnim);
@@ -774,6 +801,197 @@ public:
   }
 };
 
+// ===========================================================================
+//  Event mode: attract screen, HUD and results screen
+//
+//  These screens sit on top of the original game. The board, the move
+//  verification and the scoring are unchanged; this only replaces the menu of
+//  three modes that needed explaining with one a walk-up stranger can use
+//  unassisted.
+// ===========================================================================
+
+namespace event {
+
+// --- Attract ---------------------------------------------------------------
+
+void DrawAttract() {
+  DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Color{0, 0, 0, 230});
+
+  const int px = 50, py = 40, pw = 700, ph = 770;
+  const int cx = px + pw / 2;
+  Panel(px, py, pw, ph);
+
+  event::DrawCenteredTextShadow("PUZZLED CHESS", cx, py + 18, 50, SKYBLUE);
+  event::DrawCenteredText("Find the best move before the clock runs out.", cx,
+                          py + 86, 20, event::RGB(200, 200, 220));
+  event::DrawCenteredText("SOLVE AS MANY PUZZLES AS YOU CAN", cx, py + 118, 24,
+                          GOLD);
+
+  // How to play. Two clicks is genuinely all it takes, so say exactly that.
+  DrawRectangle(px + 50, py + 158, pw - 100, 3, Color{255, 255, 255, 45});
+  event::DrawCenteredText("HOW TO PLAY", cx, py + 172, 22, YELLOW);
+  event::DrawCenteredText("1.   Click a piece that glows blue", cx, py + 208, 19,
+                          WHITE);
+  event::DrawCenteredText("2.   Click the square you want it to go", cx,
+                          py + 236, 19, WHITE);
+  event::DrawCenteredText("3.   Your opponent replies. Keep going.", cx,
+                          py + 264, 19, WHITE);
+
+  DrawRectangle(px + 50, py + 296, pw - 100, 3, Color{255, 255, 255, 45});
+
+  // Best scores, so there is a reason to come back for another go.
+  event::DrawCenteredText("BEST SCORES", cx, py + 308, 22, YELLOW);
+  const std::vector<int> &entries = session.board.Entries();
+  if (entries.empty()) {
+    event::DrawCenteredText("no scores yet - be the first", cx, py + 350, 19,
+                            event::RGB(150, 150, 170));
+  } else {
+    int row = py + 342;
+    int place = 1;
+    for (int s : entries) {
+      char line[64];
+      snprintf(line, sizeof(line), "%d.      %d", place++, s);
+      DrawText(line, cx - 100, row, 20, WHITE);
+      row += 26;
+      if (place > (int)kMaxScores)
+        break;
+    }
+  }
+
+  // Rewards - the reason to get close even without a big score.
+  DrawRectangle(px + 50, py + 482, pw - 100, 3, Color{255, 255, 255, 45});
+  event::DrawCenteredText("REVOLVES EARNED", cx, py + 494, 22, YELLOW);
+  struct Row {
+    const char *left;
+    int amount;
+  };
+  static const Row rows[] = {
+      {"Solve 10 or more puzzles", 5},
+      {"Solve 7 or more", 4},
+      {"Solve 4 or more", 3},
+      {"Solve 2 or more", 2},
+      {"Solve at least 1", 1},
+  };
+  int ry = py + 528;
+  for (const Row &r : rows) {
+    char line[80];
+    snprintf(line, sizeof(line), "%s  ........  %d", r.left, r.amount);
+    DrawText(line, cx - 195, ry, 19, event::RGB(220, 220, 235));
+    ry += 27;
+  }
+
+  float p = Pulse(4.0f);
+  Color prompt = event::RGB(255, 255, (unsigned char)(140 + 115 * p));
+  event::DrawCenteredTextShadow("PRESS ANY KEY TO PLAY", cx, py + 668, 34,
+                                prompt);
+  event::DrawCenteredText("(or click anywhere)", cx, py + 712, 18,
+                          event::RGB(140, 140, 165));
+}
+
+// --- Heads-up display ------------------------------------------------------
+//
+// The board fills the window, so the HUD lives in the strip below it rather
+// than covering squares the player might need to click.
+
+void DrawHUD() {
+  const int barY = SCREEN_HEIGHT - 50;
+
+  bool urgent = session.roundLeft <= 10.0f;
+  float p = Pulse(8.0f);
+  Color timeColor =
+      urgent ? event::RGB(255, (unsigned char)(90 + 80 * p), 90) : WHITE;
+
+  DrawRectangle(0, barY, SCREEN_WIDTH, 50, event::RGB(10, 10, 24));
+  DrawRectangle(0, barY, SCREEN_WIDTH, 2,
+                urgent ? event::RGB(255, 90, 90) : event::RGB(70, 70, 110));
+
+  char left[64];
+  snprintf(left, sizeof(left), "SCORE %d", score);
+  DrawText(left, 14, barY + 14, 22, WHITE);
+
+  char mid[64];
+  snprintf(mid, sizeof(mid), "SOLVED %d", puzzles_solved);
+  DrawText(mid, (SCREEN_WIDTH - MeasureText(mid, 22)) / 2, barY + 14, 22,
+           SKYBLUE);
+
+  int secs = (int)ceilf(session.roundLeft);
+  char right[32];
+  snprintf(right, sizeof(right), "%ds", secs);
+  DrawText(right, SCREEN_WIDTH - MeasureText(right, 26) - 16, barY + 11, 26,
+           timeColor);
+
+  // A banner over the board for a moment after a click, so nothing ever feels
+  // like it silently failed.
+  if (FeedbackActive()) {
+    int w = MeasureText(feedback_text.c_str(), 30);
+    DrawRectangleRec(
+        Rectangle{(float)((SCREEN_WIDTH - w) / 2 - 18), 30.0f, (float)(w + 36),
+                  52.0f},
+        Color{0, 0, 0, 200});
+    event::DrawCenteredText(feedback_text.c_str(), SCREEN_WIDTH / 2, 42, 30,
+                            GOLD);
+  }
+}
+
+// --- Results ---------------------------------------------------------------
+
+void DrawResults() {
+  DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Color{0, 0, 0, 225});
+
+  const int px = 100, py = 70, pw = 600, ph = 710;
+  const int cx = px + pw / 2;
+  Panel(px, py, pw, ph);
+
+  Color accent = session.reward.accent;
+  Color lit = event::RGB(accent.r, accent.g, accent.b);
+  event::DrawCenteredTextShadow("TIME UP", cx, py + 22, 40, lit);
+  event::DrawCenteredText(session.reward.detail, cx, py + 74, 19,
+                          event::RGB(190, 190, 210));
+
+  // The payout, as a badge. This is the bit the event actually cares about.
+  int badgeY = py + 190;
+  int badgeR = 88;
+  DrawCircleV(Vector2{(float)cx, (float)badgeY}, (float)badgeR,
+              Color{accent.r, accent.g, accent.b, 60});
+  DrawCircleLinesV(Vector2{(float)cx, (float)badgeY}, (float)badgeR, lit);
+  char amount[16];
+  snprintf(amount, sizeof(amount), "%d", session.reward.revolves);
+  DrawText(amount, cx - MeasureText(amount, 72) / 2, badgeY - 42, 72, lit);
+  event::DrawCenteredText("REVOLVES", cx, badgeY + badgeR + 2, 21,
+                          event::RGB(210, 210, 230));
+
+  DrawRectangle(px + 50, py + 320, pw - 100, 3, Color{255, 255, 255, 45});
+  char line[80];
+  snprintf(line, sizeof(line), "PUZZLES SOLVED   %d", session.solved);
+  DrawText(line, px + 70, py + 342, 22, WHITE);
+  snprintf(line, sizeof(line), "SCORE            %d", session.finalScore);
+  DrawText(line, px + 70, py + 378, 22, WHITE);
+  snprintf(line, sizeof(line), "BEST             %d", session.board.Best());
+  DrawText(line, px + 70, py + 414, 22, event::RGB(190, 190, 210));
+
+  if (session.newBest) {
+    float sp = Pulse(6.0f);
+    event::DrawCenteredText(
+        "NEW HIGH SCORE!", cx, py + 462, 28,
+        event::RGB(255, 230, (unsigned char)(80 + 100 * sp)));
+  }
+
+  int left = (int)ceilf(session.resultsLeft);
+  snprintf(line, sizeof(line), "back to the menu in %d", left);
+  event::DrawCenteredText(line, cx, py + 518, 19, event::RGB(150, 150, 170));
+  float fill = session.resultsLeft / kResultsSeconds;
+  DrawRectangleRec(Rectangle{(float)(px + 70), (float)(py + 550),
+                             (float)(pw - 140), 10},
+                   event::RGB(50, 50, 70));
+  DrawRectangleRec(Rectangle{(float)(px + 70), (float)(py + 550),
+                             (float)(pw - 140) * fill, 10},
+                   lit);
+
+  event::DrawCenteredTextShadow("PRESS ANY KEY", cx, py + 598, 32, WHITE);
+}
+
+}  // namespace event
+
 int main() {
   AttachParentConsole();
 
@@ -787,20 +1005,70 @@ int main() {
     return EXIT_FAILURE;
   }
 
-  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess Grid");
+  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "PuzzledChess");
   InitAudioDevice();
   SetTargetFPS(60);
-  Game g;
-  // GuiLoadStyle("./assets/Ashes.rgs");
-  while (!WindowShouldClose()) // Detect window close button or ESC key
-  {
+
+  if (!event::kEnabled) {
+    // The original One Shot / Timed / No Limit menu, left exactly as it was.
+    Game classic;
+    while (!WindowShouldClose()) {
+      BeginDrawing();
+      ClearBackground(BLACK);
+      classic.HANDLE_GAME_STATE();
+      EndDrawing();
+    }
+    CloseWindow();
+    return 0;
+  }
+
+  Texture2D bg = LoadTexture("./assets/background.png");
+  SoundMap::Init();
+  event::session.Begin();
+
+  Board board;
+
+  while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(BLACK);
-    g.HANDLE_GAME_STATE();
+
+    event::Change change =
+        event::session.Tick(puzzles_solved, score);
+    if (change == event::Change::StartRound) {
+      score = 0;
+      score_str = "0";
+      puzzles_solved = 0;
+      feedback_text = "";
+      board.NewGame();
+    }
+    if (change == event::Change::FinishRound) {
+      event::session.Finish(puzzles_solved, score);
+    }
+
+    switch (event::session.screen) {
+      case event::Screen::Attract:
+        DrawTexture(bg, 0, 0, WHITE);
+        event::DrawAttract();
+        break;
+
+      case event::Screen::Playing:
+        board.setGameState(NO_LIMIT);
+        board.Draw();
+        board.HandleClick();
+        AnimationManager::Update();
+        event::DrawHUD();
+        break;
+
+      case event::Screen::Results:
+        board.Draw();
+        AnimationManager::Update();
+        event::DrawResults();
+        break;
+    }
+
     EndDrawing();
   }
 
   CloseWindow();
-
   return 0;
 }
