@@ -1,0 +1,215 @@
+name: Build
+
+# Produces native Linux and Windows binaries from a single runner set.
+# Windows targets are cross-compiled with MinGW-w64, so one toolchain covers
+# both platforms and both artifacts come out of the same job definition.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RAYLIB_VERSION: "5.5"
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Linux (x86_64)
+            id: linux
+            archive: tar.gz
+          - label: Windows (x86_64, MinGW)
+            id: windows
+            archive: zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # raylib is compiled from a pinned tag for every target so a release is
+      # reproducible regardless of what the runner image happens to ship.
+      - name: Check out raylib
+        uses: actions/checkout@v4
+        with:
+          repository: raysan5/raylib
+          ref: ${{ env.RAYLIB_VERSION }}
+          path: .raylib
+
+      - name: Install Linux build dependencies
+        if: matrix.id == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build git \
+            libgl1-mesa-dev libx11-dev \
+            libasound2-dev libwayland-dev libxkbcommon-dev \
+            xvfb
+
+      - name: Install MinGW-w64 cross toolchain
+        if: matrix.id == 'windows'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake ninja-build g++-mingw-w64-x86-64 zip
+
+      # Static raylib keeps the published bundles self-contained: players do not
+      # need a system raylib install, and the Windows .exe carries no DLL imports.
+      - name: Build raylib (Linux)
+        if: matrix.id == 'linux'
+        run: |
+          cmake -S .raylib -B build-raylib -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_EXAMPLES=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PWD/raylib-install"
+          cmake --build build-raylib
+          cmake --install build-raylib
+
+      - name: Build raylib (Windows)
+        if: matrix.id == 'windows'
+        run: |
+          cmake -S .raylib -B build-raylib -GNinja \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/cmake/toolchain-mingw-x86_64.cmake" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_EXAMPLES=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PWD/raylib-install"
+          cmake --build build-raylib
+          cmake --install build-raylib
+
+      - name: Configure game
+        run: |
+          if [ "${{ matrix.id }}" = "windows" ]; then
+            extra="-DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchain-mingw-x86_64.cmake -DPUZZLEDCHESS_STATIC_RUNTIME=ON"
+          else
+            extra=""
+          fi
+          cmake -S . -B build -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/raylib-install" \
+            $extra
+
+      - name: Build game
+        run: cmake --build build
+
+      # `cmake --install` gives both targets the same layout:
+      #   <prefix>/bin/<executable>   and   <prefix>/assets/
+      - name: Stage bundle
+        run: |
+          cmake --install build --prefix "$PWD/dist"
+          chmod -R a+rX dist
+          test -f dist/assets/lichess_db_puzzle.csv
+          echo "::group::bundle layout"
+          find dist -maxdepth 2 | head -30
+          echo "::endgroup::"
+
+      - name: Verify Linux bundle is self-contained
+        if: matrix.id == 'linux'
+        run: |
+          # raylib is statically linked, so the published binary must not need
+          # libraylib.so present on the player's machine.
+          if ldd dist/bin/PuzzledChess | grep -i raylib; then
+            echo "error: binary still links raylib dynamically" >&2
+            exit 1
+          fi
+          ldd dist/bin/PuzzledChess
+
+      - name: Verify Windows executable
+        if: matrix.id == 'windows'
+        run: |
+          test -f dist/bin/PuzzledChess.exe
+          file dist/bin/PuzzledChess.exe
+          if x86_64-w64-mingw32-objdump -p dist/bin/PuzzledChess.exe | grep -q 'DLL Name'; then
+            echo "::warning::binary still imports DLLs; the static runtime option did not apply"
+          else
+            echo "No DLL imports - the executable is self-contained."
+          fi
+
+      - name: Smoke test (offscreen)
+        if: matrix.id == 'linux'
+        run: |
+          # Runs the real binary long enough to open the window, load every
+          # asset and deal a puzzle from the bundled database. A missing file or
+          # an unparsable puzzle shows up in the log.
+          set +e
+          xvfb-run -a --server-args="-screen 0 1280x1024x24" \
+            timeout 10 ./dist/bin/PuzzledChess > smoke.log 2>&1
+          status=$?
+          set -e
+          cat smoke.log
+          # 124 means the timeout fired while the game was still running: success.
+          if [ "$status" -ne 124 ] && [ "$status" -ne 0 ]; then
+            echo "error: smoke test exited with status $status" >&2
+            exit 1
+          fi
+          if grep -iqE "failed to load|error:|no usable puzzle" smoke.log; then
+            echo "error: the game reported asset or puzzle errors" >&2
+            exit 1
+          fi
+
+      - name: Package
+        env:
+          ARCHIVE: ${{ matrix.archive }}
+        run: |
+          cd dist
+          if [ "$ARCHIVE" = "zip" ]; then
+            zip -qr "../PuzzledChess-${{ matrix.id }}-x86_64.zip" .
+          else
+            tar -czf "../PuzzledChess-${{ matrix.id }}-x86_64.tar.gz" .
+          fi
+          cd ..
+          ls -lh PuzzledChess-*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PuzzledChess-${{ matrix.id }}-x86_64
+          path: PuzzledChess-${{ matrix.id }}-x86_64.*
+          if-no-files-found: error
+          retention-days: 30
+
+  # Waits for both platforms, then attaches the archives to a GitHub Release.
+  # Runs for tag pushes so a pushed v1.0.0 produces a downloadable release.
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect archives and checksums
+        run: |
+          mkdir -p publish
+          find artifacts -type f \( -name 'PuzzledChess-*.tar.gz' -o -name 'PuzzledChess-*.zip' \) \
+            -exec cp {} publish/ \;
+          cd publish
+          sha256sum ./* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Publish to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" publish/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --title "PuzzledChess $GITHUB_REF_NAME" \
+              --generate-notes \
+              publish/*
+          fi
