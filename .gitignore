@@ -1,6 +1,34 @@
-assets/lichess_db_puzzle.csv.zst
-build
-build
-assets/lichess_db_puzzle.csv
-.cache/clangd/index
-out/Debug
+# Build output
+build/
+build-*/
+cmake-build-*/
+out/
+dist/
+
+# CMake / IDE generated files
+compile_commands.json
+CMakeUserPresets.json
+.cache/
+*.user
+
+# Binaries
+*.exe
+*.dSYM/
+*.pdb
+*.ilk
+*.o
+*.obj
+PuzzledChess
+Chess
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# The active puzzle dataset is a 30,000 puzzle random subset of the Lichess
+# database and is committed so the game is playable straight after a clone.
+# The full collection is fetched with scripts/fetch_puzzles.sh and is far too
+# large (~300 MB compressed, ~1.3 GB plain) to track.
+assets/lichess_db_puzzle_full.csv
+assets/lichess_db_puzzle_full.csv.zst
+assets/*.csv.zst

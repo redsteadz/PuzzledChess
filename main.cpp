@@ -1,20 +1,38 @@
 #include "cmath"
 #include "headers/animate.h"
+#include "headers/console.h"
 #include "headers/constant.h"
 #include "headers/database.h"
 #include "headers/gui.h"
 #include "headers/sound.h"
-#define RAYGUI_IMPLEMENTATION
-#include "headers/raygui.h"
 #include "map"
 #include "raylib.h"
-#define GUI_MENU_IMPLEMENTATION
-#include "headers/gui_menu.h"
 #include <bits/stdc++.h>
 #include <ios>
 #include <iostream>
 #include <string>
 #include <utility>
+
+// raygui and gui_menu are vendored third-party headers (upstream raygui
+// sources). They are included here with warnings relaxed so the project can
+// keep a clean -Wall build without patching upstream code.
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wenum-compare"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
+#define RAYGUI_IMPLEMENTATION
+#include "headers/raygui.h"
+#define GUI_MENU_IMPLEMENTATION
+#include "headers/gui_menu.h"
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 using namespace std;
 
 string board[8][8];
@@ -484,7 +502,7 @@ public:
         if (inBounds(pos) && ValidMove(pos) && VerifyMove(pos)) {
           // Make this move
           PlayMove();
-          if (moveCount < moves.size())
+          if (moveCount < (int)moves.size())
             EnemyMove();
           else {
             UpdateScore();
@@ -564,7 +582,7 @@ public:
   }
   void Cheat() {
     PlayMove();
-    if (moveCount < moves.size())
+    if (moveCount < (int)moves.size())
       EnemyMove();
     else {
       UpdateScore();
@@ -594,6 +612,13 @@ public:
   }
   void NewGame() {
     pair<string, string> Board_Moves = Filer::ParseLine();
+    if (Board_Moves.first.empty() || Board_Moves.second.empty()) {
+      // The puzzle database could not be read. Leave the board empty rather
+      // than indexing into an empty FEN and crashing.
+      cerr << "Error: no usable puzzle could be loaded from "
+           << Filer::DatabasePath() << endl;
+      return;
+    }
     cout << Board_Moves.first << endl;
     cout << Board_Moves.second << endl;
     setBoard(Board_Moves.first);
@@ -669,15 +694,15 @@ class Game {
 public:
   void setState(GAME_STATE state) { gameState = state; }
   Game()
-      : Button(Vector2{0, 800}, &GuiSheet),
+      : Time(Vector2{400 - 48 * 3 / 2, 800}, &time),
+        ScoreLabel(Vector2{650, 800}, &score_str),
+        Button(Vector2{0, 800}, &GuiSheet),
         OneShot({SCREEN_WIDTH / 2.0 - 48 * 3 / 2.0, 300}, "ONE SHOT", &GuiSheet,
                 ONE_SHOT, &gameState),
         Timed({SCREEN_WIDTH / 2.0 - 48 * 3 / 2.0, 400}, "TIMED", &GuiSheet,
               TIMED, &gameState),
         No_Limit({SCREEN_WIDTH / 2.0 - 48 * 3 / 2.0, 500}, "NO LIMIT",
-                 &GuiSheet, NO_LIMIT, &gameState),
-        ScoreLabel(Vector2{650, 800}, &score_str),
-        Time(Vector2{400 - 48 * 3 / 2, 800}, &time) {
+                 &GuiSheet, NO_LIMIT, &gameState) {
     bg = LoadTexture("./assets/background.png");
     SoundMap::Init();
     // Make a function that updates the string time
@@ -750,6 +775,18 @@ public:
 };
 
 int main() {
+  AttachParentConsole();
+
+  // Fail loudly and early instead of crashing inside the board parser when
+  // the puzzle database is missing.
+  if (!Filer::Loaded()) {
+    cerr << "Could not load the puzzle database from " << Filer::DatabasePath()
+         << endl;
+    cerr << "Run scripts/fetch_puzzles.sh (or download the CSV from "
+         << "https://database.lichess.org/#puzzles) and try again." << endl;
+    return EXIT_FAILURE;
+  }
+
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess Grid");
   InitAudioDevice();
   SetTargetFPS(60);
